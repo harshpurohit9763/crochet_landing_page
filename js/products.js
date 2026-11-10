@@ -1,8 +1,7 @@
 window.FINGO = {
   config: {
-    // Your number with country code and no plus sign, for example 919876543210.
-    // Left empty, WhatsApp asks the customer who to send the message to.
-    whatsapp: '',
+    // WhatsApp number with country code, digits only.
+    whatsapp: '919833095599',
     instagram: 'https://instagram.com/'
   },
   categories: [
