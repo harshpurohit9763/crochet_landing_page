@@ -650,6 +650,7 @@ onAuthStateChanged(auth, (u) => {
   if (cartUnsub) { cartUnsub(); cartUnsub = null; }
   const acc = $('account-btn');
   $('admin-link').hidden = true;
+  $('orders-link').hidden = !u;
   if (!u) {
     cart = {};
     itemNotes = {};

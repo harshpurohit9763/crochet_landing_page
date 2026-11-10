@@ -44,13 +44,14 @@ h2 { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 7vw, 
 .logo { font-weight: 800; font-size: 36px; letter-spacing: -.04em; line-height: 1; text-decoration: none; }
 .links { display: flex; align-items: center; gap: 22px; }
 .links a { text-decoration: none; }
-.nav-shop:hover, .nav-basket:hover { text-decoration: underline; text-underline-offset: 4px; }
+.nav-orders:hover, .nav-basket:hover { text-decoration: underline; text-underline-offset: 4px; }
 .nav-basket { font-weight: 500; }
 .nav-account { padding: 7px 14px; border: 2px solid currentColor; border-radius: 99px; font-weight: 500; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-account:hover { background: var(--t); color: var(--c); }
 .nav-admin { padding: 7px 14px; border-radius: 99px; background: var(--t); color: var(--c); font-weight: 800; transition: background .45s, color .45s, transform .2s; }
 .nav-admin:hover { transform: scale(1.05); }
-.nav-admin[hidden] { display: none; }
+.nav-admin[hidden], .nav-orders[hidden] { display: none; }
+.nav-orders { font-weight: 500; }
 
 /* how to order dropdown */
 .howto { position: relative; }
@@ -313,7 +314,7 @@ img[data-loading] { background-color: #F7E3EB; background-image: repeating-linea
   .big { margin-top: 30px; }
   .top { flex-wrap: wrap; row-gap: 12px; }
   .links { flex-wrap: wrap; justify-content: flex-end; gap: 10px 14px; }
-  .nav-shop, .nav-basket { display: none; }
+  .nav-basket { display: none; }
   .basket-btn.tucked { opacity: 1; visibility: visible; }
   .how-panel { position: fixed; top: 74px; left: 16px; right: 16px; width: auto; }
   .how-panel::before { display: none; }
