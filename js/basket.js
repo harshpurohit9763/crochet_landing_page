@@ -15,11 +15,16 @@
   function save() { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} }
   function total() { return Object.keys(items).reduce(function (a, k) { return a + items[k]; }, 0); }
 
+  function waLink(text) {
+    var phone = String(F.config.whatsapp).replace(/\D/g, '');
+    return 'https://api.whatsapp.com/send?phone=' + phone + '&text=' + encodeURIComponent(text);
+  }
+
   function waHref() {
     var lines = Object.keys(items).map(function (id) { return '- ' + items[id] + ' x ' + F.byId[id].name; });
     var text = 'Hi Fingo! I would like to order:\n' + lines.join('\n');
     if (note.value.trim()) text += '\n\nNote: ' + note.value.trim();
-    return 'https://wa.me/' + F.config.whatsapp + '?text=' + encodeURIComponent(text);
+    return waLink(text);
   }
 
   function render() {
@@ -80,8 +85,15 @@
   scrim.addEventListener('click', close);
   addEventListener('keydown', function (e) { if (e.key === 'Escape' && drawer.classList.contains('open')) close(); });
   note.addEventListener('input', function () { if (total()) send.href = waHref(); });
+  send.addEventListener('click', function (e) {
+    if (!total()) { e.preventDefault(); return; }
+    send.href = waHref();
+  });
 
-  $('foot-wa').href = 'https://wa.me/' + F.config.whatsapp;
+  var footWa = $('foot-wa');
+  footWa.href = waLink('Hi Fingo!');
+  footWa.target = '_blank';
+  footWa.rel = 'noopener';
   $('foot-ig').href = F.config.instagram;
 
   F.basket = { add: add, remove: function (id) { change(id, -1); }, items: items, onChange: function (fn) { listeners.push(fn); } };
