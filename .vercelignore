@@ -1,0 +1,9 @@
+# Not part of the website: admin scripts, Firebase config, raw and pre-database photos.
+tools/
+assets/
+img/
+concepts/
+firebase.json
+.firebaserc
+firestore.rules
+.claude/

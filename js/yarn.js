@@ -1,6 +1,7 @@
 (function () {
   var NS = 'http://www.w3.org/2000/svg';
 
+  window.FINGO = window.FINGO || {};
   window.FINGO.yarn = function (o) {
     var host = o.host, from = o.from;
     var svg = document.createElementNS(NS, 'svg');

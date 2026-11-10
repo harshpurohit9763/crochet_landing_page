@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your account | Fingo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/admin.css?v=6">
+</head>
+<body class="admin">
+<header class="a-top">
+  <a class="a-logo" href="index.html">fingo</a>
+  <a class="a-back" href="index.html">Back to shop</a>
+  <span class="a-user" id="p-email"></span>
+  <a class="a-admin" id="p-admin" href="admin.html" hidden>Open admin</a>
+</header>
+
+<main class="a-main p-main">
+  <section class="a-gate" id="p-gate">
+    <h1>Your account</h1>
+    <p>Sign in with Google to see your details and orders.</p>
+    <p class="error" id="p-gate-msg" role="alert"></p>
+    <button class="btn solid" id="p-signin" type="button">Continue with Google</button>
+  </section>
+
+  <div id="p-app" hidden>
+    <h1 class="p-title" id="p-hello">Your account</h1>
+    <div class="p-grid">
+      <section class="p-card">
+        <h2>Your details</h2>
+        <p class="muted" id="p-why">We use these to deliver your orders.</p>
+        <form class="form" id="p-form" novalidate>
+          <label>Full name<input name="name" autocomplete="name" maxlength="80"></label>
+          <span class="error" id="err-name"></span>
+          <label>Mobile number<input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="98765 43210" maxlength="20"></label>
+          <span class="error" id="err-phone"></span>
+          <label>Delivery address<textarea name="address" rows="4" autocomplete="street-address" placeholder="House, street, area, city, pincode" maxlength="500"></textarea></label>
+          <span class="error" id="err-address"></span>
+          <p class="error" id="p-msg" role="alert"></p>
+          <div class="dlg-actions">
+            <button class="btn solid" id="p-save" type="submit">Save details</button>
+            <span class="p-saved" id="p-saved" role="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="p-card">
+        <h2>Your orders</h2>
+        <ul class="p-orders" id="p-orders"></ul>
+      </section>
+    </div>
+    <div class="p-foot">
+      <button class="link" id="p-out" type="button">Sign out</button>
+    </div>
+  </div>
+</main>
+
+<script type="module" src="js/profile.js?v=5"></script>
+</body>
+</html>

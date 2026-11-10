@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;500;600&family=Yeseva+One&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
 <main id="page">
@@ -19,80 +19,42 @@
       <nav class="top" aria-label="Main">
         <a class="logo" href="#top">fingo</a>
         <div class="links">
-          <a href="#garden">Shop</a>
-          <a href="#festive-door">Festive</a>
-          <a href="#order">How to order</a>
+          <a class="nav-shop" href="#sections">Shop</a>
+          <div class="howto">
+            <button class="nav-how" id="how-btn" type="button" aria-expanded="false" aria-controls="how-panel">How to order</button>
+            <div class="how-panel" id="how-panel" role="region" aria-labelledby="how-title" hidden>
+              <h2 id="how-title">How to order</h2>
+              <ol class="how-steps">
+                <li><h3>Sign in and add</h3><p>Tap Add on anything you like. The first time, sign in with Google. Your basket is saved to your account.</p></li>
+                <li><h3>Place your order</h3><p>Open your basket, add a note for colour or size, and tap Order on WhatsApp. First order? Enter your name, mobile and address once.</p></li>
+                <li><h3>Send it on WhatsApp</h3><p>Your order is saved with a code like FG-1A2B3C. Tap Send on WhatsApp so the message reaches us.</p></li>
+                <li><h3>We confirm and make it</h3><p>We reply to confirm price and delivery, then make it by hand. Track it anytime in your account.</p></li>
+              </ol>
+            </div>
+          </div>
           <button class="nav-basket" data-basket-open>Basket (<span class="basket-count">0</span>)</button>
+          <a class="nav-admin" id="admin-link" href="admin.html" hidden>Admin</a>
+          <a class="nav-account" id="account-btn" href="profile.html">Sign in</a>
         </div>
       </nav>
-      <p class="big" id="hero-big"></p>
+      <p class="big" id="hero-big">&nbsp;</p>
       <p class="sub">Little loops. Big happiness.</p>
       <div class="buy"><span id="hero-name"></span><div id="hero-ctl"></div></div>
-      <div class="tabs" id="hero-tabs"><a class="shop-all" href="#garden">Shop all</a></div>
+      <div class="tabs" id="hero-tabs"><a class="shop-all" href="#sections">Shop all</a></div>
     </div>
   </header>
 
-  <section class="garden" id="garden">
-    <div class="wrap">
-      <header class="sec-head">
-        <h2>Shop handmade</h2>
-        <div class="chips" id="chips" role="group" aria-label="Filter products"></div>
-      </header>
-      <div class="plants" id="plants"></div>
-    </div>
-  </section>
+  <nav class="secbar" id="secbar" aria-label="Sections"><div class="wrap" id="secbar-links"></div></nav>
 
-  <section class="door" id="festive-door">
-    <div class="toran" aria-hidden="true"></div>
-    <div class="door-body" id="door-body">
-      <h2 id="door-title">Little loops. Big happiness.</h2>
-      <p class="door-lede">Handmade crochet for every festival, gift and everyday joy.</p>
-      <a class="door-btn" href="#festive">See festive pieces</a>
-      <div class="door-arches">
-        <div class="door-arch" data-d="10"><img loading="lazy" src="img/photo/a_lotus.webp" alt="Pink crochet lotus"></div>
-        <div class="door-arch mid" data-d="-16"><img loading="lazy" src="img/photo/a_diya.webp" alt="Crochet lotus diya held in a hand"></div>
-        <div class="door-arch" data-d="10"><img loading="lazy" src="img/photo/a_toran.webp" alt="Red crochet blossom toran"></div>
-      </div>
-    </div>
-  </section>
+  <div id="sections"><p class="loading wrap">Loading the shop…</p></div>
 
-  <section class="festive" id="festive">
-    <div class="wrap">
-      <header class="sec-head">
-        <h2>Dressed for the festival</h2>
-        <p>Diyas, garlands and torans that never wilt. Drag to look along the shelf.</p>
-      </header>
-    </div>
-    <div class="shelf" id="shelf" tabindex="0" aria-label="Festive pieces"></div>
-  </section>
-
-  <section class="worn" id="worn">
-    <div class="wrap">
-      <header class="sec-head">
-        <h2>Looks better on you</h2>
-        <p>Pinned in a braid, stacked on a wrist, carried to the market.</p>
-      </header>
-      <div class="pins" id="pins"></div>
-    </div>
-  </section>
-
-  <section class="order" id="order">
-    <div class="wrap">
-      <header class="sec-head"><h2>How to order</h2></header>
-      <ol class="steps">
-        <li><h3>Add to your basket</h3><p>Tap Add on anything you like.</p></li>
-        <li><h3>Send it on WhatsApp</h3><p>Your list arrives as one message. Ask for a colour or a size.</p></li>
-        <li><h3>We start looping</h3><p>Your piece is made by hand, then packed and sent to you.</p></li>
-      </ol>
-    </div>
-  </section>
 
   <footer class="foot">
     <div class="wrap">
       <p class="foot-line">Little loops. Big happiness.</p>
       <div class="foot-links">
-        <a id="foot-wa" href="#">WhatsApp</a>
-        <a id="foot-ig" href="#">Instagram</a>
+        <a id="foot-wa" href="#" target="_blank" rel="noopener">WhatsApp</a>
+        <a id="foot-ig" href="#" target="_blank" rel="noopener">Instagram</a>
         <span>Handmade by Fingo</span>
       </div>
     </div>
@@ -108,18 +70,34 @@
   <header><h2 id="drawer-title">Your basket</h2><button class="x" id="basket-close" aria-label="Close basket">Close</button></header>
   <ul id="basket-list"></ul>
   <p class="empty" id="basket-empty">Your basket is empty. Add something you like from the shop.</p>
-  <label class="note">Colour, size or a note for the maker
-    <textarea id="basket-note" rows="2" placeholder="Rose in yellow, please"></textarea>
+  <label class="note">Note for the whole order (optional)
+    <textarea id="basket-note" rows="2" placeholder="Gift wrap please, it's for a birthday" maxlength="1000"></textarea>
   </label>
-  <a class="btn wa" id="basket-send" href="#" target="_blank" rel="noopener">Order on WhatsApp</a>
+  <p class="basket-total" id="basket-total"></p>
+  <button class="btn wa" id="basket-send" type="button">Order on WhatsApp</button>
+  <p class="order-hint" id="order-hint"></p>
+  <p class="error" id="order-msg" role="alert"></p>
+  <div class="order-done" id="order-done">
+    <h3>Order <span id="order-code"></span> saved</h3>
+    <p>One last step: send it to us on WhatsApp so we can confirm colours and delivery.</p>
+    <a class="btn wa" id="order-wa" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
+    <button class="link" id="order-more" type="button">Continue shopping</button>
+  </div>
 </aside>
+
+<dialog class="dlg" id="login-dlg" aria-labelledby="login-title">
+  <h2 id="login-title">Sign in to add</h2>
+  <p class="muted">Your basket is saved to your account, so it's there on your phone and laptop.</p>
+  <p class="error" id="login-msg" role="alert"></p>
+  <div class="dlg-actions">
+    <button class="btn solid" id="login-go" type="button">Continue with Google</button>
+    <button class="link" id="login-cancel" type="button">Not now</button>
+  </div>
+</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
 <script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>
-<script src="js/products.js?v=5"></script>
-<script src="js/basket.js?v=6"></script>
-<script src="js/yarn.js?v=5"></script>
-<script src="js/garden.js?v=4"></script>
-<script src="js/hero.js?v=4"></script>
+<script src="js/yarn.js?v=6"></script>
+<script type="module" src="js/app.js?v=19"></script>
 </body>
 </html>

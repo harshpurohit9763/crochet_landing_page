@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fingo admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/admin.css?v=6">
+</head>
+<body class="admin">
+<header class="a-top">
+  <a class="a-logo" href="index.html">fingo</a>
+  <nav class="a-tabs" id="a-tabs" role="tablist" aria-label="Admin sections" hidden>
+    <button class="a-tab" role="tab" id="tab-orders" aria-controls="v-orders" aria-selected="true">Orders</button>
+    <button class="a-tab" role="tab" id="tab-catalog" aria-controls="v-catalog" aria-selected="false">Catalogue</button>
+  </nav>
+  <span class="a-user" id="a-user"></span>
+  <button class="link" id="a-out" hidden>Sign out</button>
+</header>
+
+<main class="a-main">
+  <section class="a-gate" id="a-gate">
+    <h1>Fingo admin</h1>
+    <p id="a-gate-msg">Sign in with your admin Google account.</p>
+    <button class="btn solid" id="a-signin">Continue with Google</button>
+  </section>
+
+  <section id="v-orders" role="tabpanel" aria-labelledby="tab-orders" hidden>
+    <div class="a-bar">
+      <div class="a-chips" id="a-filters" role="group" aria-label="Filter by status"></div>
+      <input type="search" id="a-search" placeholder="Search name, phone or order code" aria-label="Search orders">
+      <button class="chip" id="a-alerts" type="button">Turn on new order alerts</button>
+    </div>
+    <p class="muted" id="a-count"></p>
+    <ul class="a-list" id="a-list"></ul>
+  </section>
+
+  <section id="v-catalog" role="tabpanel" aria-labelledby="tab-catalog" hidden>
+    <div class="c-head">
+      <div>
+        <h2 class="c-title">Sections and products</h2>
+        <p class="muted">Changes show on the shop as soon as you save. Sections appear in this order.</p>
+      </div>
+      <button class="btn solid" id="c-new-section" type="button">New section</button>
+    </div>
+    <div class="c-sections" id="c-sections"></div>
+  </section>
+</main>
+
+<dialog class="dlg dlg-wide" id="sec-dlg" aria-labelledby="sec-title">
+  <form class="form" id="sec-form" novalidate>
+    <h2 id="sec-title">New section</h2>
+    <label>Title<input name="title" maxlength="80" required></label>
+    <span class="error" id="sec-err-title"></span>
+    <label>Short line under the title<input name="subtitle" maxlength="160"></label>
+    <label>Layout<select name="layout" id="sec-layout"></select></label>
+    <fieldset class="c-themes">
+      <legend>Background</legend>
+      <div class="c-theme-grid" id="sec-themes"></div>
+    </fieldset>
+    <label class="c-check"><input type="checkbox" name="visible" checked> Show on the shop</label>
+    <p class="error" id="sec-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button class="btn solid" type="submit" id="sec-save">Save section</button>
+      <button class="link" type="button" id="sec-cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg dlg-wide" id="prod-dlg" aria-labelledby="prod-title">
+  <form class="form" id="prod-form" novalidate>
+    <h2 id="prod-title">New product</h2>
+    <div class="c-photo">
+      <img id="prod-preview" alt="">
+      <div>
+        <label class="btn c-file">Choose photo<input type="file" accept="image/*" id="prod-file"></label>
+        <p class="muted c-small">Large photos are shrunk automatically. Square or upright photos look best.</p>
+        <span class="error" id="prod-err-photo"></span>
+      </div>
+    </div>
+    <label>Name<input name="name" maxlength="80" required></label>
+    <span class="error" id="prod-err-name"></span>
+    <label>Price in rupees (leave empty to confirm on WhatsApp)<input name="price" type="number" min="0" step="1" inputmode="numeric"></label>
+    <span class="error" id="prod-err-price"></span>
+    <fieldset class="c-offer">
+      <legend>Offer</legend>
+      <label class="c-check"><input type="checkbox" name="onOffer" id="prod-on-offer"> Put this on offer</label>
+      <div class="c-offer-body" id="prod-offer" hidden>
+        <div class="c-two">
+          <label>Discount (%)<input name="offerPercent" type="number" min="1" max="90" step="1" inputmode="numeric" placeholder="20"></label>
+          <label>Offer runs for<select name="offerFor" id="prod-offer-for">
+            <option value="1">1 day</option>
+            <option value="3">3 days</option>
+            <option value="5">5 days</option>
+            <option value="7">1 week</option>
+            <option value="custom">Until a date I pick</option>
+          </select></label>
+        </div>
+        <label id="prod-until-wrap" hidden>Offer ends on<input type="datetime-local" name="offerUntil" id="prod-until"></label>
+        <span class="error" id="prod-err-offer"></span>
+        <p class="c-calc" id="prod-calc"></p>
+        <p class="muted c-small">While the offer runs, this product also shows as a coupon in Today's offers, and it stays in its own section too. Both go back to normal by themselves when the offer ends.</p>
+      </div>
+    </fieldset>
+    <label>Section<select name="sectionId" id="prod-section"></select></label>
+    <label class="c-check"><input type="checkbox" name="visible" checked> Show on the shop</label>
+    <label class="c-check"><input type="checkbox" name="featured" id="prod-featured"> Show in the big opening banner</label>
+    <div class="c-hero" id="prod-hero">
+      <label>Big banner headline<input name="heroLine" maxlength="40" placeholder="Cherry on top"></label>
+      <label>Banner colour<select name="heroColor" id="prod-color"></select></label>
+    </div>
+    <p class="error" id="prod-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button class="btn solid" type="submit" id="prod-save">Save product</button>
+      <button class="link" type="button" id="prod-cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/admin.js?v=9"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function validProfile(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.phone is string && d.phone.size() >= 10 && d.phone.size() <= 16
+        && d.address is string && d.address.size() >= 10 && d.address.size() <= 500;
+    }
+
+    // users/{uid}: profile plus role ('user' or 'admin').
+    // A role can only be changed by an admin or in the Firebase console.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'phone', 'address', 'email', 'role', 'createdAt', 'updatedAt'])
+        && request.resource.data.role == 'user'
+        && validProfile(request.resource.data);
+
+      allow update: if (signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'address', 'updatedAt'])
+          && validProfile(request.resource.data))
+        || isAdmin();
+
+      allow delete: if false;
+    }
+
+    // carts/{uid}: each signed-in customer's basket.
+    match /carts/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['items', 'itemNotes', 'note', 'updatedAt'])
+        && request.resource.data.items is map
+        && request.resource.data.items.size() <= 100
+        && (!('itemNotes' in request.resource.data)
+          || (request.resource.data.itemNotes is map && request.resource.data.itemNotes.size() <= 100))
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 1000;
+    }
+
+    // orders/{id}: created by the customer, status managed by admins.
+    match /orders/{id} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'customer', 'items', 'note', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'new'
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 100
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 1000;
+
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && request.resource.data.status in ['new', 'confirmed', 'making', 'shipped', 'delivered', 'cancelled'];
+
+      allow delete: if false;
+    }
+
+    // Catalogue: anyone can read, only admins can change.
+    match /sections/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // meta/catalog: a version stamp admins bump on every catalogue change, so visitors
+    // can reuse their cached catalogue when nothing changed.
+    match /meta/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // media/{id}: uploaded product photos, stored as compressed data URLs.
+    match /media/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 1000000;
+      allow delete: if isAdmin();
+    }
+  }
+}
