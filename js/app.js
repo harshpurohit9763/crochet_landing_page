@@ -379,13 +379,18 @@ const send = $('basket-send'), noteEl = $('basket-note'), floating = $('basket-o
 const hint = $('order-hint'), msg = $('order-msg');
 let opener = floating;
 
-function total() { return Object.keys(cart).reduce((a, k) => a + cart[k], 0); }
+// The saved basket can arrive before the product list. Until the list is loaded, keep every
+// basket entry as is and only show the ones we can already describe.
+let catalogReady = false;
+const known = () => Object.keys(cart).filter((id) => byId[id] && cart[id] > 0);
+
+function total() { return known().reduce((a, k) => a + cart[k], 0); }
 
 function itemNote(id) { return String(itemNotes[id] || '').trim(); }
 
 function totals() {
   let sum = 0, save = 0, unpriced = 0;
-  Object.keys(cart).forEach((id) => {
+  known().forEach((id) => {
     const o = offerInfo(byId[id]);
     if (o.price) { sum += o.price * cart[id]; save += o.save * cart[id]; } else unpriced++;
   });
@@ -393,7 +398,7 @@ function totals() {
 }
 
 function waText(code) {
-  const lines = Object.keys(cart).map((id) => {
+  const lines = known().map((id) => {
     const o = offerInfo(byId[id]);
     const price = o.price ? ' @ ' + fmtPrice(o.price) + (o.active ? ' (' + o.percent + '% off ' + fmtPrice(o.original) + ')' : '') : '';
     return '- ' + cart[id] + ' x ' + byId[id].name + price + (itemNote(id) ? '\n  Note: ' + itemNote(id) : '');
@@ -445,10 +450,13 @@ function makeLine(id) {
 }
 
 function renderCart() {
-  Object.keys(cart).forEach((id) => { if (!byId[id] || !(cart[id] > 0)) delete cart[id]; });
-  Object.keys(itemNotes).forEach((id) => { if (!cart[id]) delete itemNotes[id]; });
-  lines.forEach((rec, id) => { if (!cart[id]) { rec.li.remove(); lines.delete(id); } });
-  Object.keys(cart).forEach((id) => {
+  if (catalogReady) {
+    Object.keys(cart).forEach((id) => { if (!byId[id] || !(cart[id] > 0)) delete cart[id]; });
+    Object.keys(itemNotes).forEach((id) => { if (!cart[id]) delete itemNotes[id]; });
+  }
+  const ids = known();
+  lines.forEach((rec, id) => { if (!ids.includes(id)) { rec.li.remove(); lines.delete(id); } });
+  ids.forEach((id) => {
     const rec = lines.get(id) || makeLine(id);
     rec.count.textContent = cart[id];
     const o = offerInfo(byId[id]);
@@ -548,6 +556,7 @@ let busy = false;
 send.addEventListener('click', async () => {
   if (busy || !total()) return;
   msg.textContent = '';
+  msg.classList.remove('ok');
   if (!user) { requireLogin(() => send.click()); return; }
   if (!(profile && profile.name && profile.phone && profile.address)) {
     clearTimeout(noteTimer);
@@ -559,7 +568,7 @@ send.addEventListener('click', async () => {
   send.textContent = 'Saving your order…';
   try {
     clearTimeout(itemNoteTimer);
-    const items = Object.keys(cart).map((id) => {
+    const items = known().map((id) => {
       const o = offerInfo(byId[id]);
       return {
         id, name: byId[id].name, qty: cart[id], price: o.price || null,
@@ -696,6 +705,7 @@ async function boot() {
     sections = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => x.visible !== false);
     products = p.docs.map((d) => ({ id: d.id, ...d.data() }));
     byId = Object.fromEntries(products.map((x) => [x.id, x]));
+    catalogReady = true;
   } catch (e) {
     console.error(e);
     $('sections').replaceChildren(el('p', 'loading wrap', "Couldn't load the shop. Check your connection and refresh."));
@@ -708,8 +718,13 @@ async function boot() {
   let after = '';
   try { after = sessionStorage.getItem('fingo-after-login') || ''; sessionStorage.removeItem('fingo-after-login'); } catch (e) {}
   if (location.hash === '#checkout' || (after === 'basket' && user)) {
+    const back = location.hash === '#checkout';
     history.replaceState(null, '', location.pathname);
     openDrawer();
+    if (back && total()) {
+      msg.textContent = 'Details saved. Tap Order on WhatsApp to place your order.';
+      msg.classList.add('ok');
+    }
   }
 }
 boot();

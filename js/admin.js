@@ -297,8 +297,8 @@ function renderCatalog() {
     } else if (s.layout === 'offers') {
       const live = products.filter((p) => offerInfo(p).active);
       body.append(el('p', 'muted c-empty', live.length
-        ? 'Showing ' + live.length + (live.length === 1 ? ' product' : ' products') + ' with a running offer: ' + live.map((p) => p.name).join(', ') + '. Turn an offer on from any product's Edit.'
-        : 'Empty right now. Turn on an offer from any product's Edit and it shows here while the offer runs.'));
+        ? 'Showing ' + live.length + (live.length === 1 ? ' product' : ' products') + ' with a running offer: ' + live.map((p) => p.name).join(', ') + ". Turn an offer on from any product's Edit."
+        : "Empty right now. Turn on an offer from any product's Edit and it shows here while the offer runs."));
     } else if (!items.length) {
       body.append(el('p', 'muted c-empty', 'No products yet. Hidden sections and empty sections do not show on the shop.'));
     }

@@ -279,6 +279,7 @@ img[data-loading] { background-color: #F7E3EB; background-image: repeating-linea
 .muted { color: #7A5A68; }
 .error { color: #B3123C; font-size: 15px; font-weight: 500; }
 .error:empty { display: none; }
+.error.ok { color: #22561A; padding: 10px 12px; border-radius: 12px; background: #E3F4DD; }
 .order-hint { font-size: 15px; color: #7A5A68; }
 .order-hint:empty { display: none; }
 .order-done { display: none; flex-direction: column; gap: 14px; margin-top: 8px; }
