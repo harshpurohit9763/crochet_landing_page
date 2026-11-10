@@ -105,7 +105,7 @@ function card(o) {
   li.append(say);
 
   const items = el('ul', 'o-items');
-  let sum = 0, unpriced = 0;
+  let sum = 0, unpriced = 0, saved = 0;
   (o.items || []).forEach((i) => {
     const row = el('li');
     const left = el('div');
@@ -114,8 +114,18 @@ function card(o) {
     row.append(left);
     if (i.price) {
       sum += i.price * i.qty;
-      const pr = el('span', 'o-item-price', fmtPrice(i.price * i.qty));
-      if (i.offerPercent) pr.append(el('small', '', i.offerPercent + '% off'));
+      const pr = el('span', 'o-item-price');
+      const discounted = i.offerPercent && i.originalPrice > i.price;
+      if (discounted) {
+        saved += (i.originalPrice - i.price) * i.qty;
+        const was = el('s', 'o-was', fmtPrice(i.originalPrice * i.qty));
+        was.setAttribute('aria-label', 'Was ' + i.originalPrice * i.qty + ' rupees');
+        const line = el('span', 'o-price-line');
+        line.append(was, el('strong', 'o-now', fmtPrice(i.price * i.qty)));
+        pr.append(line, el('small', 'o-off', i.offerPercent + '% off'));
+      } else {
+        pr.append(el('strong', 'o-now plain', fmtPrice(i.price * i.qty)));
+      }
       row.append(pr);
     } else {
       unpriced++;
@@ -130,6 +140,7 @@ function card(o) {
   const totals = el('dl', 'o-totals');
   const row = (k, v, cls) => { const d = el('div', cls || ''); d.append(el('dt', '', k), el('dd', '', v)); totals.append(d); };
   row('Items', sum ? fmtPrice(sum) + (unpriced ? ' + priced on WhatsApp' : '') : 'Priced on WhatsApp');
+  if (saved) row('You saved', fmtPrice(saved), 'saved');
   row('Delivery', hasDelivery ? (o.deliveryCharge === 0 ? 'Free' : fmtPrice(o.deliveryCharge)) : 'Added after we confirm', hasDelivery ? '' : 'pending');
   if (sum) row('Total', fmtPrice(sum + (hasDelivery ? o.deliveryCharge : 0)) + (hasDelivery ? '' : ' + delivery'), 'grand');
   li.append(totals);
