@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fingo | Little loops. Big happiness.</title>
+<meta name="description" content="Handmade crochet flowers, bangles, hair pieces, keychains and festive decor by Fingo. Pick what you love and order on WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;500;600&family=Yeseva+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=4">
+</head>
+<body>
+<main id="page">
+  <header class="hero" id="top">
+    <h1 class="sr">Fingo handmade crochet</h1>
+    <div class="pic" id="hero-pic"></div>
+    <div class="side">
+      <nav class="top" aria-label="Main">
+        <a class="logo" href="#top">fingo</a>
+        <div class="links">
+          <a href="#garden">Shop</a>
+          <a href="#festive-door">Festive</a>
+          <a href="#order">How to order</a>
+          <button class="nav-basket" data-basket-open>Basket (<span class="basket-count">0</span>)</button>
+        </div>
+      </nav>
+      <p class="big" id="hero-big"></p>
+      <p class="sub">Little loops. Big happiness.</p>
+      <div class="buy"><span id="hero-name"></span><div id="hero-ctl"></div></div>
+      <div class="tabs" id="hero-tabs"><a class="shop-all" href="#garden">Shop all</a></div>
+    </div>
+  </header>
+
+  <section class="garden" id="garden">
+    <div class="wrap">
+      <header class="sec-head">
+        <h2>Shop handmade</h2>
+        <div class="chips" id="chips" role="group" aria-label="Filter products"></div>
+      </header>
+      <div class="plants" id="plants"></div>
+    </div>
+  </section>
+
+  <section class="door" id="festive-door">
+    <div class="toran" aria-hidden="true"></div>
+    <div class="door-body" id="door-body">
+      <h2 id="door-title">Little loops. Big happiness.</h2>
+      <p class="door-lede">Handmade crochet for every festival, gift and everyday joy.</p>
+      <a class="door-btn" href="#festive">See festive pieces</a>
+      <div class="door-arches">
+        <div class="door-arch" data-d="10"><img loading="lazy" src="img/photo/a_lotus.webp" alt="Pink crochet lotus"></div>
+        <div class="door-arch mid" data-d="-16"><img loading="lazy" src="img/photo/a_diya.webp" alt="Crochet lotus diya held in a hand"></div>
+        <div class="door-arch" data-d="10"><img loading="lazy" src="img/photo/a_toran.webp" alt="Red crochet blossom toran"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="festive" id="festive">
+    <div class="wrap">
+      <header class="sec-head">
+        <h2>Dressed for the festival</h2>
+        <p>Diyas, garlands and torans that never wilt. Drag to look along the shelf.</p>
+      </header>
+    </div>
+    <div class="shelf" id="shelf" tabindex="0" aria-label="Festive pieces"></div>
+  </section>
+
+  <section class="worn" id="worn">
+    <div class="wrap">
+      <header class="sec-head">
+        <h2>Looks better on you</h2>
+        <p>Pinned in a braid, stacked on a wrist, carried to the market.</p>
+      </header>
+      <div class="pins" id="pins"></div>
+    </div>
+  </section>
+
+  <section class="order" id="order">
+    <div class="wrap">
+      <header class="sec-head"><h2>How to order</h2></header>
+      <ol class="steps">
+        <li><h3>Add to your basket</h3><p>Tap Add on anything you like.</p></li>
+        <li><h3>Send it on WhatsApp</h3><p>Your list arrives as one message. Ask for a colour or a size.</p></li>
+        <li><h3>We start looping</h3><p>Your piece is made by hand, then packed and sent to you.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p class="foot-line">Little loops. Big happiness.</p>
+      <div class="foot-links">
+        <a id="foot-wa" href="#">WhatsApp</a>
+        <a id="foot-ig" href="#">Instagram</a>
+        <span>Handmade by Fingo</span>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<button class="basket-btn" id="basket-open" data-basket-open aria-haspopup="dialog">
+  <span>Basket</span><span class="count basket-count">0</span>
+</button>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" inert data-lenis-prevent>
+  <header><h2 id="drawer-title">Your basket</h2><button class="x" id="basket-close" aria-label="Close basket">Close</button></header>
+  <ul id="basket-list"></ul>
+  <p class="empty" id="basket-empty">Your basket is empty. Add something you like from the shop.</p>
+  <label class="note">Colour, size or a note for the maker
+    <textarea id="basket-note" rows="2" placeholder="Rose in yellow, please"></textarea>
+  </label>
+  <a class="btn wa" id="basket-send" href="#" target="_blank" rel="noopener">Order on WhatsApp</a>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>
+<script src="js/products.js?v=4"></script>
+<script src="js/basket.js?v=4"></script>
+<script src="js/yarn.js?v=5"></script>
+<script src="js/garden.js?v=4"></script>
+<script src="js/hero.js?v=4"></script>
+</body>
+</html>

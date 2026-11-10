@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fingo concept B</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root { --c: #C8102E; --t: #FFE9DC; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font: 500 17px/1.45 'Bricolage Grotesque', sans-serif; color: #17120F; background: #fff; overflow-x: hidden; }
+a { color: inherit; text-decoration: none; }
+img { display: block; width: 100%; }
+.hero { position: relative; display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100svh; background: var(--c); color: var(--t); transition: background .45s, color .45s; }
+.pic { position: relative; overflow: hidden; }
+.pic img { position: absolute; inset: 0; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.05); transition: opacity .45s, transform .7s; }
+.pic img.on { opacity: 1; transform: none; }
+.side { display: flex; flex-direction: column; padding: 22px clamp(16px, 3vw, 40px) clamp(20px, 3vw, 36px); }
+.top { display: flex; justify-content: space-between; align-items: center; }
+.logo { font-weight: 800; font-size: 34px; letter-spacing: -.04em; }
+.links { display: flex; gap: 22px; }
+.big { margin-top: auto; font-weight: 800; font-size: clamp(60px, 10vw, 158px); line-height: .84; letter-spacing: -.05em; }
+.sub { margin: 20px 0; font-size: clamp(20px, 2vw, 26px); }
+.tabs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tab { width: 62px; height: 62px; padding: 0; border: 3px solid transparent; border-radius: 14px; overflow: hidden; background: none; cursor: pointer; transition: border-color .2s, transform .2s; }
+.tab img { height: 100%; object-fit: cover; }
+.tab.on, .tab:hover { border-color: var(--t); transform: translateY(-3px); }
+.btn { margin-left: auto; padding: 18px 28px; border-radius: 99px; background: var(--t); color: var(--c); font-weight: 800; transition: color .45s, transform .2s; }
+.btn:hover { transform: scale(1.05); }
+.bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: clamp(180px, 22vw, 320px); gap: 10px; padding: 10px; }
+.tile { position: relative; overflow: hidden; border-radius: 20px; }
+.tile img { height: 100%; object-fit: cover; transition: transform .5s; }
+.tile:hover img { transform: scale(1.05); }
+.tile span { position: absolute; left: 12px; bottom: 12px; padding: 7px 14px; border-radius: 99px; background: #fff; font-size: 15px; }
+.w2 { grid-column: span 2; } .h2 { grid-row: span 2; }
+.say { display: flex; align-items: flex-end; padding: 22px; background: #F4A90F; font-weight: 800; font-size: clamp(30px, 4vw, 56px); line-height: .92; letter-spacing: -.03em; }
+@media (max-width: 800px) {
+  .hero { grid-template-columns: 1fr; }
+  .pic { height: 58vw; min-height: 300px; order: 2; }
+  .big { margin-top: 28px; }
+  .links { display: none; }
+  .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 46vw; }
+}
+</style>
+</head>
+<body>
+<header class="hero" id="h">
+  <div class="pic" id="pic"></div>
+  <div class="side">
+    <div class="top"><a class="logo" href="#">fingo</a><div class="links"><a href="#">Shop</a><a href="#">Festive</a><a href="#">Basket (0)</a></div></div>
+    <h1 class="big" id="big"></h1>
+    <p class="sub">Little loops. Big happiness.</p>
+    <div class="tabs" id="tabs"><a class="btn" href="#">Shop all</a></div>
+  </div>
+</header>
+<section class="bento">
+  <a class="tile w2 h2" href="#"><img src="../img/product/gajra.webp" alt=""><span>Jasmine gajra</span></a>
+  <a class="tile" href="#"><img src="../img/product/bow.webp" alt=""><span>Big red bow</span></a>
+  <a class="tile" href="#"><img src="../img/product/icecream.webp" alt=""><span>Ice cream keychain</span></a>
+  <div class="tile say">Made by hand. Never by machine.</div>
+  <a class="tile" href="#"><img src="../img/product/backpack.webp" alt=""><span>Sunflower backpack</span></a>
+</section>
+<script src="shared.js"></script>
+<script>
+var P = [
+  { id: 'cherry', name: 'Cherry on top', c: '#C8102E', t: '#FFE9DC' },
+  { id: 'daisy', name: 'Oopsie daisy', c: '#15301C', t: '#FFD84D' },
+  { id: 'cupcake', name: 'Sweet tooth', c: '#F58FB4', t: '#4A1230' },
+  { id: 'sunflower', name: 'Hello sunshine', c: '#F4A90F', t: '#3C1A08' },
+  { id: 'rose', name: 'Rosy days', c: '#A80F4E', t: '#FFD9E6' }
+];
+var pic = document.getElementById('pic'), tabs = document.getElementById('tabs'), big = document.getElementById('big'), hero = document.getElementById('h'), btn = tabs.firstChild;
+var imgs = P.map(function (p) { var i = new Image(); i.src = '../img/product/' + p.id + '.webp'; i.alt = p.name; pic.appendChild(i); return i; });
+var bs = P.map(function (p, n) {
+  var b = document.createElement('button');
+  b.className = 'tab';
+  b.setAttribute('aria-label', p.name);
+  b.innerHTML = '<img alt="" src="../img/product/' + p.id + '.webp">';
+  b.onmouseenter = b.onfocus = b.onclick = function () { show(n); };
+  tabs.insertBefore(b, btn);
+  return b;
+});
+function show(n) {
+  hero.style.setProperty('--c', P[n].c);
+  hero.style.setProperty('--t', P[n].t);
+  big.textContent = P[n].name;
+  imgs.forEach(function (x, i) { x.className = i === n ? 'on' : ''; });
+  bs.forEach(function (x, i) { x.className = i === n ? 'tab on' : 'tab'; });
+}
+show(0);
+fingoYarn({ host: hero, from: big, fx: 0, fy: 1, rest: [.5, .72], color: '#fff', w: 5 });
+</script>
+</body>
+</html>
