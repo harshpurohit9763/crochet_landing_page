@@ -93,7 +93,15 @@ body.admin { background: #F7F1EA; }
 .c-tag.deal { background: #FFE3E3; color: #B3123C; }
 .a-item-price { color: #6A4651; font-size: 14px; }
 .a-item-id { display: block; font-size: 12px; color: #9A7B88; font-family: ui-monospace, monospace; }
-.a-total { margin-top: 6px; padding-top: 6px; border-top: 1px solid #F0E3E8; font-weight: 700; }
+.a-total-line { font-size: 14px; color: #6A4651; }
+.a-total-line:first-of-type, .a-total-line + .a-total-line { margin-top: 0; }
+.a-total { margin-top: 4px; padding-top: 6px; border-top: 1px solid #F0E3E8; font-weight: 700; }
+.a-delivery { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #FFF1C9; }
+.a-delivery label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; color: #5A3B00; }
+.a-delivery input { width: 120px; padding: 7px 10px; border: 2px solid #E7C76A; border-radius: 10px; background: #fff; }
+.a-delivery input:focus { outline: none; border-color: #B88400; }
+.a-delivery-msg { flex-basis: 100%; font-size: 13px; }
+.a-delivery-msg:empty { display: none; }
 
 /* profile page */
 .p-main { max-width: 1000px; }

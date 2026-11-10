@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your orders | Fingo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/admin.css?v=7">
+<link rel="stylesheet" href="css/orders.css?v=2">
+</head>
+<body class="admin">
+<header class="a-top">
+  <a class="a-logo" href="index.html">fingo</a>
+  <a class="a-back" href="index.html">Back to shop</a>
+  <a class="a-back" href="profile.html">Your details</a>
+  <span class="a-user" id="o-email"></span>
+</header>
+
+<main class="a-main o-main">
+  <section class="a-gate" id="o-gate">
+    <h1>Your orders</h1>
+    <p>Sign in with Google to see and track your orders.</p>
+    <p class="error" id="o-gate-msg" role="alert"></p>
+    <button class="btn solid" id="o-signin" type="button">Continue with Google</button>
+  </section>
+
+  <div id="o-app" hidden>
+    <h1 class="p-title">Your orders</h1>
+    <p class="muted o-intro">Every order updates here as soon as we move it along.</p>
+    <ul class="o-list" id="o-list"></ul>
+  </div>
+</main>
+
+<script type="module" src="js/orders.js?v=1"></script>
+</body>
+</html>

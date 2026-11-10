@@ -400,7 +400,8 @@ function waText(code) {
   });
   let text = 'Hi Fingo! I would like to order' + (code ? ' (' + code + ')' : '') + ':\n' + lines.join('\n');
   const t = totals();
-  if (t.sum) text += '\n\nTotal: ' + fmtPrice(t.sum) + (t.unpriced ? ' plus items to be priced' : '') + (t.save ? ' (you save ' + fmtPrice(t.save) + ')' : '');
+  if (t.sum) text += '\n\nItems total: ' + fmtPrice(t.sum) + (t.unpriced ? ' plus items to be priced' : '') + (t.save ? ' (you save ' + fmtPrice(t.save) + ')' : '');
+  text += '\nDelivery: to be added by Fingo';
   if (note.trim()) text += '\n\nNote: ' + note.trim();
   return text;
 }
@@ -469,6 +470,7 @@ function renderCart() {
     if (t.save) totalEl.append(el('small', 'save', 'You save ' + fmtPrice(t.save)));
   }
   const n = total();
+  $('delivery-note').hidden = n === 0;
   document.querySelectorAll('.basket-count').forEach((c) => { c.textContent = n; });
   empty.hidden = n > 0;
   send.disabled = n === 0;

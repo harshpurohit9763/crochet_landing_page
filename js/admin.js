@@ -161,9 +161,44 @@ function orderCard(o) {
     if (i.note) li.append(el('span', 'a-item-note', i.note));
     ul.append(li);
   });
-  if (sum) ul.append(el('li', 'a-total', 'Total ' + fmtPrice(sum) + (unpriced ? ' plus ' + unpriced + ' unpriced' : '')));
+  const hasDelivery = typeof o.deliveryCharge === 'number';
+  if (sum) {
+    ul.append(el('li', 'a-total-line', 'Items ' + fmtPrice(sum) + (unpriced ? ' plus ' + unpriced + ' unpriced' : '')));
+    ul.append(el('li', 'a-total-line', 'Delivery ' + (hasDelivery ? fmtPrice(o.deliveryCharge) : 'not added yet')));
+    ul.append(el('li', 'a-total', 'Total ' + fmtPrice(sum + (hasDelivery ? o.deliveryCharge : 0)) + (hasDelivery ? '' : ' + delivery')));
+  }
   what.append(el('h3', '', 'Items'), ul);
   if (o.note) what.append(el('p', 'a-note', 'Order note: ' + o.note));
+
+  const dv = el('form', 'a-delivery');
+  const dl = el('label', '', 'Delivery charge (₹)');
+  const di = el('input');
+  di.type = 'number';
+  di.min = '0';
+  di.step = '1';
+  di.inputMode = 'numeric';
+  di.placeholder = '60';
+  if (hasDelivery) di.value = o.deliveryCharge;
+  dl.append(di);
+  const db_ = el('button', 'c-btn', hasDelivery ? 'Update' : 'Add');
+  db_.type = 'submit';
+  const dmsg = el('span', 'a-delivery-msg');
+  dv.append(dl, db_, dmsg);
+  dv.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const raw = di.value.trim();
+    const v = raw === '' ? null : Number(raw);
+    if (v !== null && !(Number.isInteger(v) && v >= 0 && v <= 10000)) { dmsg.textContent = 'Enter whole rupees, 0 to 10,000.'; dmsg.className = 'a-delivery-msg error'; return; }
+    db_.disabled = true;
+    try {
+      await updateDoc(doc(db, 'orders', o.id), { deliveryCharge: v, updatedAt: serverTimestamp() });
+    } catch (err) {
+      console.error(err);
+      dmsg.textContent = "Couldn't save. Try again.";
+      dmsg.className = 'a-delivery-msg error';
+    } finally { db_.disabled = false; }
+  });
+  what.append(dv);
 
   const st = el('div', 'a-status');
   const label = el('label', '', 'Status');
@@ -174,7 +209,7 @@ function orderCard(o) {
   const err = el('span', 'error');
   sel.addEventListener('change', async () => {
     sel.disabled = true;
-    try { await updateDoc(doc(db, 'orders', o.id), { status: sel.value, updatedAt: serverTimestamp() }); }
+    try { await updateDoc(doc(db, 'orders', o.id), { status: sel.value, ['statusTimes.' + sel.value]: serverTimestamp(), updatedAt: serverTimestamp() }); }
     catch (e) { console.error(e); err.textContent = "Couldn't update. Try again."; sel.value = o.status; }
     finally { sel.disabled = false; }
   });

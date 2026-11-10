@@ -186,6 +186,10 @@ h2 { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 7vw, 
 .basket-total small { flex-basis: 100%; font-size: 14px; color: #7A5A68; }
 .basket-total small.save { color: #22561A; font-weight: 700; }
 .drawer.done .basket-total { display: none; }
+.delivery-note { position: relative; padding: 12px 14px 12px 46px; border-radius: 14px; background: #FFF1C9; border: 2px dashed #E7A90E; color: #5A3B00; font-size: 14px; line-height: 1.45; }
+.delivery-note::before { content: '₹'; position: absolute; left: 12px; top: 12px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #E7A90E; color: #fff; font-weight: 800; font-size: 14px; }
+.delivery-note strong { display: block; color: #3C2600; }
+.delivery-note[hidden], .drawer.done .delivery-note { display: none; }
 
 /* loading: a spinning yarn ball with a loose end while a photo arrives */
 @keyframes yarn-spin { to { rotate: 360deg; } }

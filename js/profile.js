@@ -1,7 +1,7 @@
-import { db, auth, googleSignIn, getProfile, validateProfile, orderCode, fmtDate, statusLabel, el } from './firebase-shared.js?v=17';
+import { db, auth, googleSignIn, getProfile, validateProfile } from './firebase-shared.js?v=17';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
-  doc, setDoc, updateDoc, getDocs, collection, query, where, serverTimestamp
+  doc, setDoc, updateDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
 const $ = (id) => document.getElementById(id);
@@ -37,7 +37,6 @@ onAuthStateChanged(auth, async (u) => {
   form.elements.phone.value = (profile && profile.phone) || '';
   form.elements.address.value = (profile && profile.address) || '';
   $('p-admin').hidden = !(profile && profile.role === 'admin');
-  loadOrders();
 });
 
 form.addEventListener('input', (e) => { const t = $('err-' + e.target.name); if (t) t.textContent = ''; $('p-saved').textContent = ''; });
@@ -71,33 +70,3 @@ form.addEventListener('submit', async (e) => {
     btn.textContent = label;
   }
 });
-
-async function loadOrders() {
-  const list = $('p-orders');
-  list.replaceChildren(el('p', 'muted', 'Loading your orders…'));
-  try {
-    const snap = await getDocs(query(collection(db, 'orders'), where('uid', '==', user.uid)));
-    const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0));
-    list.replaceChildren();
-    if (!rows.length) {
-      const p = el('p', 'muted', "You haven't ordered yet. ");
-      const a = el('a', 'link', 'Go to the shop');
-      a.href = 'index.html#sections';
-      p.append(a);
-      list.append(p);
-      return;
-    }
-    rows.forEach((o) => {
-      const li = el('li', 'my-order');
-      const top = el('div', 'my-order-top');
-      top.append(el('strong', '', orderCode(o.id)), el('span', 'pill s-' + o.status, statusLabel(o.status)));
-      li.append(top, el('p', 'muted', fmtDate(o.createdAt)), el('p', '', o.items.map((i) => i.qty + ' x ' + i.name + (i.note ? ' (' + i.note + ')' : '')).join(', ')));
-      if (o.note) li.append(el('p', 'muted', 'Note: ' + o.note));
-      list.append(li);
-    });
-  } catch (e) {
-    console.error(e);
-    list.replaceChildren(el('p', 'error', "Couldn't load your orders. Try again in a moment."));
-  }
-}

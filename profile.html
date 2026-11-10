@@ -8,13 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=15">
-<link rel="stylesheet" href="css/admin.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/admin.css?v=7">
 </head>
 <body class="admin">
 <header class="a-top">
   <a class="a-logo" href="index.html">fingo</a>
   <a class="a-back" href="index.html">Back to shop</a>
+  <a class="a-back" href="orders.html">Your orders</a>
   <span class="a-user" id="p-email"></span>
   <a class="a-admin" id="p-admin" href="admin.html" hidden>Open admin</a>
 </header>
@@ -48,9 +49,10 @@
         </form>
       </section>
 
-      <section class="p-card">
+      <section class="p-card p-orders-card">
         <h2>Your orders</h2>
-        <ul class="p-orders" id="p-orders"></ul>
+        <p class="muted">See every order, its delivery charge and where it is right now.</p>
+        <a class="btn solid" href="orders.html">Track your orders</a>
       </section>
     </div>
     <div class="p-foot">
@@ -59,6 +61,6 @@
   </div>
 </main>
 
-<script type="module" src="js/profile.js?v=5"></script>
+<script type="module" src="js/profile.js?v=6"></script>
 </body>
 </html>
