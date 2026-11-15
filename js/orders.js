@@ -14,7 +14,7 @@ const STEPS = [
 ];
 const SAY = {
   new: "Got it! We'll confirm your order soon.",
-  confirmed: 'Confirmed. Your yarn is picked out and ready to go.',
+  confirmed: "Confirmed! Your yarn is picked out and ready to go. We'll share payment details for delivery on WhatsApp.",
   making: 'Your piece is on the hook right now, loop by loop.',
   shipped: 'Packed with love and on its way to you.',
   delivered: 'Delivered. We hope it makes you smile!',
@@ -122,7 +122,7 @@ function quoteBox(o, sum) {
     opts.append(lab);
   });
   const warn = el('p', 'o-nonref');
-  warn.append(el('strong', '', 'Delivery charges are non-refundable.'), ' Once you accept, the delivery charge has to be paid. We share payment details on WhatsApp.');
+  warn.append(el('strong', '', 'Delivery charges are non-refundable.'), ' Accepting confirms your order, and the delivery charge has to be paid. We share payment details on WhatsApp.');
   const err = el('p', 'error');
   accept.addEventListener('click', async () => {
     accept.disabled = true;
@@ -130,7 +130,7 @@ function quoteBox(o, sum) {
     try {
       await updateDoc(doc(db, 'orders', o.id), {
         deliveryChoice: pick, deliveryCharge: o.delivery[pick], customerConfirmed: true,
-        customerConfirmedAt: serverTimestamp(), updatedAt: serverTimestamp()
+        customerConfirmedAt: serverTimestamp(), status: 'confirmed', 'statusTimes.confirmed': serverTimestamp(), updatedAt: serverTimestamp()
       });
     } catch (e) { console.error(e); accept.disabled = false; err.textContent = "Couldn't save your choice. Check your connection and try again."; }
   });

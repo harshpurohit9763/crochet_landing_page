@@ -88,13 +88,14 @@ service cloud.firestore {
           || request.resource.data.deliveryCharge == null
           || (request.resource.data.deliveryCharge is int && request.resource.data.deliveryCharge >= 0 && request.resource.data.deliveryCharge <= 10000));
 
-      // Customer: accept one of the quoted delivery options, or cancel before accepting.
+      // Customer: accept one of the quoted delivery options, which confirms the order, or cancel before accepting.
       allow update: if signedIn() && resource.data.uid == request.auth.uid
         && resource.data.status == 'new'
         && resource.data.get('customerConfirmed', false) != true
-        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryChoice', 'deliveryCharge', 'customerConfirmed', 'customerConfirmedAt', 'updatedAt'])
+        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryChoice', 'deliveryCharge', 'customerConfirmed', 'customerConfirmedAt', 'status', 'statusTimes', 'updatedAt'])
             && 'delivery' in resource.data
             && request.resource.data.customerConfirmed == true
+            && request.resource.data.status == 'confirmed'
             && request.resource.data.deliveryChoice in ['normal', 'fast']
             && resource.data.delivery.get(request.resource.data.deliveryChoice, null) is int
             && request.resource.data.deliveryCharge == resource.data.delivery[request.resource.data.deliveryChoice])

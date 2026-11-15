@@ -9,15 +9,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=19">
-<link rel="stylesheet" href="css/admin.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=20">
+<link rel="stylesheet" href="css/admin.css?v=9">
 </head>
 <body class="admin">
 <header class="a-top">
   <a class="a-logo" href="index.html"><img src="brand/logo-160.webp" alt="" width="40" height="40">LoopLove</a>
   <nav class="a-tabs" id="a-tabs" role="tablist" aria-label="Admin sections" hidden>
     <button class="a-tab" role="tab" id="tab-orders" aria-controls="v-orders" aria-selected="true">Orders</button>
-    <button class="a-tab" role="tab" id="tab-catalog" aria-controls="v-catalog" aria-selected="false">Catalogue</button>
+    <button class="a-tab" role="tab" id="tab-products" aria-controls="v-products" aria-selected="false">Products</button>
+    <button class="a-tab" role="tab" id="tab-catalog" aria-controls="v-catalog" aria-selected="false">Sections</button>
   </nav>
   <span class="a-user" id="a-user"></span>
   <button class="link" id="a-out" hidden>Sign out</button>
@@ -39,6 +40,29 @@
     </div>
     <p class="muted" id="a-count"></p>
     <ul class="a-list" id="a-list"></ul>
+  </section>
+
+  <section id="v-products" role="tabpanel" aria-labelledby="tab-products" hidden>
+    <div class="c-head">
+      <div>
+        <h2 class="c-title">All products</h2>
+        <p class="muted">Change prices and visibility right here. Tap Edit for photos, options, offers and the rest.</p>
+      </div>
+      <div class="c-head-btns"><button class="btn solid" id="pl-new" type="button">New product</button></div>
+    </div>
+    <div class="a-bar pl-bar">
+      <input type="search" id="pl-search" placeholder="Search products" aria-label="Search products">
+      <select id="pl-section" aria-label="Filter by section"></select>
+      <select id="pl-sort" aria-label="Sort products">
+        <option value="section">Sort: section</option>
+        <option value="name">Sort: name A to Z</option>
+        <option value="price-asc">Sort: price low to high</option>
+        <option value="price-desc">Sort: price high to low</option>
+        <option value="new">Sort: newest first</option>
+      </select>
+    </div>
+    <p class="muted" id="pl-count"></p>
+    <div class="pl-grid" id="pl-list"></div>
   </section>
 
   <section id="v-catalog" role="tabpanel" aria-labelledby="tab-catalog" hidden>
@@ -168,6 +192,6 @@
   </form>
 </dialog>
 
-<script type="module" src="js/admin.js?v=13"></script>
+<script type="module" src="js/admin.js?v=14"></script>
 </body>
 </html>

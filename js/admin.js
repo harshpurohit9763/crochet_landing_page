@@ -25,6 +25,7 @@ onAuthStateChanged(auth, async (u) => {
   $('a-tabs').hidden = true;
   $('v-orders').hidden = true;
   $('v-catalog').hidden = true;
+  $('v-products').hidden = true;
   $('a-gate').hidden = false;
   if (!u) {
     $('a-gate-msg').textContent = 'Sign in with your admin Google account.';
@@ -43,19 +44,20 @@ onAuthStateChanged(auth, async (u) => {
   }
   $('a-gate').hidden = true;
   $('a-tabs').hidden = false;
-  showTab(location.hash === '#catalogue' ? 'catalog' : 'orders');
+  showTab(location.hash === '#catalogue' ? 'catalog' : location.hash === '#products' ? 'products' : 'orders');
   listenOrders();
   listenCatalog();
 });
 
 function showTab(which) {
-  ['orders', 'catalog'].forEach((t) => {
+  ['orders', 'products', 'catalog'].forEach((t) => {
     $('tab-' + t).setAttribute('aria-selected', t === which);
     $('v-' + t).hidden = t !== which;
   });
-  history.replaceState(null, '', which === 'catalog' ? '#catalogue' : '#orders');
+  history.replaceState(null, '', which === 'catalog' ? '#catalogue' : '#' + which);
 }
 $('tab-orders').addEventListener('click', () => showTab('orders'));
+$('tab-products').addEventListener('click', () => showTab('products'));
 $('tab-catalog').addEventListener('click', () => showTab('catalog'));
 
 /* ---------- orders ---------- */
@@ -73,7 +75,7 @@ function listenOrders() {
         if (c.type === 'modified') {
           const was = orders.find((o) => o.id === c.doc.id);
           const now = c.doc.data();
-          if (was && !was.customerConfirmed && now.customerConfirmed) notify(c.doc, 'Delivery accepted: ');
+          if (was && !was.customerConfirmed && now.customerConfirmed) notify(c.doc, 'Confirmed by customer: ');
           if (was && was.status !== 'cancelled' && now.status === 'cancelled' && now.cancelledBy === 'customer') notify(c.doc, 'Cancelled by customer: ');
         }
       });
@@ -153,7 +155,7 @@ function deliveryBox(o) {
   }
   if (state === 'accepted') {
     box.classList.add('ok');
-    box.append(el('p', 'a-dl-state', 'Customer accepted ' + (DELIVERY_NAMES[o.deliveryChoice] || 'delivery') + ': ' + fmtPrice(o.deliveryCharge) + '. Collect the delivery charge, then confirm.'));
+    box.append(el('p', 'a-dl-state', 'Customer accepted ' + (DELIVERY_NAMES[o.deliveryChoice] || 'delivery') + ': ' + fmtPrice(o.deliveryCharge) + '. The order confirmed itself. Collect the delivery charge.'));
     return box;
   }
   const d = o.delivery || {};
@@ -169,9 +171,9 @@ function deliveryBox(o) {
   const msg = el('span', 'a-delivery-msg');
   form.append(ln, lf, save, msg);
   const stateText = {
-    none: 'Add delivery charges. The customer picks one and accepts before you can confirm. Enter 0 with no fast option for free delivery.',
+    none: 'Add delivery charges. The customer picks one, and accepting confirms the order. Enter 0 with no fast option for free delivery.',
     legacy: 'Old order: send delivery charges so the customer can accept.',
-    quoted: 'Waiting for the customer to accept. You can confirm once they do.',
+    quoted: 'Waiting for the customer. The order confirms itself when they accept.',
     free: 'Free delivery. You can confirm right away.'
   }[state];
   box.append(el('p', 'a-dl-state', stateText), form);
@@ -271,7 +273,7 @@ function orderCard(o) {
     finally { sel.disabled = false; }
   });
   st.append(el('span', 'pill s-' + o.status, statusLabel(o.status)), label, err);
-  if (locked) st.append(el('p', 'a-lock', 'Confirm unlocks once the customer accepts the delivery charge.'));
+  if (locked) st.append(el('p', 'a-lock', 'The customer confirms by accepting the delivery charge.'));
   li.append(who, what, st);
   return li;
 }
@@ -285,7 +287,7 @@ let byId = {};
 
 function listenCatalog() {
   const got = { s: false, p: false, c: false };
-  const ready = () => { if (got.s && got.p && got.c) renderCatalog(); };
+  const ready = () => { if (got.s && got.p && got.c) { renderCatalog(); renderProductList(); } };
   unsubs.push(onSnapshot(query(collection(db, 'sections'), orderBy('order')), (s) => {
     sections = s.docs.map((d) => ({ id: d.id, ...d.data() }));
     got.s = true; ready();
@@ -482,6 +484,90 @@ function renderOffersBody(body, live) {
     }));
     row.append(pics, info, a);
     body.append(row);
+  });
+}
+
+/* ---------- products screen: every product in one place ---------- */
+
+['pl-search', 'pl-section', 'pl-sort'].forEach((id) => $(id).addEventListener('input', renderProductList));
+$('pl-new').addEventListener('click', () => $('c-new-product').click());
+
+function renderProductList() {
+  const secSel = $('pl-section');
+  const keep = secSel.value;
+  secSel.replaceChildren();
+  [['', 'All sections']].concat(homeSections().map((s) => [s.id, s.title]), [['__offer', 'On offer now'], ['__hidden', 'Hidden']])
+    .forEach(([v, t]) => { const o = el('option', '', t); o.value = v; secSel.append(o); });
+  secSel.value = [...secSel.options].some((o) => o.value === keep) ? keep : '';
+
+  const q = $('pl-search').value.trim().toLowerCase();
+  const f = secSel.value;
+  const secOrder = Object.fromEntries(sections.map((s, i) => [s.id, i]));
+  const sorts = {
+    section: (a, b) => (secOrder[a.sectionId] ?? 999) - (secOrder[b.sectionId] ?? 999) || (a.order || 0) - (b.order || 0),
+    name: (a, b) => a.name.localeCompare(b.name),
+    'price-asc': (a, b) => (a.price || 0) - (b.price || 0),
+    'price-desc': (a, b) => (b.price || 0) - (a.price || 0),
+    new: (a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0)
+  };
+  const list = products.filter((p) => {
+    if (q && !p.name.toLowerCase().includes(q) && !p.id.toLowerCase().includes(q)) return false;
+    if (f === '__offer') return offerInfo(p).active;
+    if (f === '__hidden') return p.visible === false;
+    return !f || p.sectionId === f;
+  }).sort(sorts[$('pl-sort').value] || sorts.section);
+
+  $('pl-count').textContent = list.length + ' of ' + products.length + ' products';
+  const root = $('pl-list');
+  root.replaceChildren();
+  if (!list.length) { root.append(el('p', 'muted', 'No products match.')); return; }
+  list.forEach((p) => {
+    const card = el('article', 'pl-card' + (p.visible === false ? ' off' : ''));
+    const pic = el('button', 'pl-pic');
+    pic.type = 'button';
+    pic.setAttribute('aria-label', 'Edit ' + p.name);
+    pic.append(thumb(p.image));
+    pic.addEventListener('click', () => openProduct(p));
+    const oi = offerInfo(p);
+    if (oi.active) pic.append(el('span', 'pl-badge', oi.percent + '% off'));
+    const body = el('div', 'pl-body');
+    const home = sectionOf(p.sectionId);
+    body.append(el('h3', '', p.name), el('p', 'pl-sec', home ? home.title : 'No section'));
+
+    const pf = el('form', 'pl-price');
+    const lab = el('label', '', 'Price ₹');
+    const inp = numInput(p.price, 'empty');
+    inp.setAttribute('aria-label', 'Price of ' + p.name);
+    lab.append(inp);
+    const ok = el('span', 'pl-saved');
+    pf.append(lab, ok);
+    const savePrice = async () => {
+      const raw = inp.value.trim();
+      const v = raw === '' ? null : Number(raw);
+      if (v === (p.price || null)) return;
+      if (v !== null && !(Number.isInteger(v) && v >= 0 && v <= 100000)) { ok.textContent = 'Whole rupees only'; ok.className = 'pl-saved error'; return; }
+      ok.textContent = 'Saving…';
+      ok.className = 'pl-saved';
+      try {
+        await updateDoc(doc(db, 'products', p.id), { price: v, updatedAt: serverTimestamp() });
+        bumpCatalog();
+        ok.textContent = 'Saved';
+      } catch (e) { console.error(e); ok.textContent = "Couldn't save"; ok.className = 'pl-saved error'; }
+    };
+    pf.addEventListener('submit', (e) => { e.preventDefault(); savePrice(); });
+    inp.addEventListener('change', savePrice);
+    body.append(pf);
+    if (oi.active) body.append(el('p', 'pl-offer', 'Now ' + fmtPrice(oi.price) + ' until ' + fmtWhen(oi.endsAt)));
+    const opts = optionsOf(p);
+    if (opts.length) body.append(el('p', 'pl-opts', opts.map((g) => g.name + ': ' + g.values.map((v) => v.label).join(', ')).join(' · ')));
+
+    const a = el('div', 'c-actions');
+    a.append(btn('Edit', 'main', () => openProduct(p)),
+      btn(p.visible === false ? 'Show' : 'Hide', '', () => toggleVisible(p)),
+      btn('Delete', 'danger', () => deleteProduct(p)));
+    body.append(a);
+    card.append(pic, body);
+    root.append(card);
   });
 }
 
