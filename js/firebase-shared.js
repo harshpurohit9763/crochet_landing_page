@@ -242,6 +242,37 @@ export function bumpCatalog() {
   return setDoc(doc(db, 'meta', 'catalog'), { version: serverTimestamp() }).catch((e) => console.error(e));
 }
 
+// In-site replacements for the browser's confirm() and alert(). ask() resolves true when the
+// customer or admin taps the main button.
+export function ask(message, { title = 'Are you sure?', ok = 'Yes', cancel = 'Go back', danger = false, alertOnly = false } = {}) {
+  return new Promise((resolve) => {
+    const d = el('dialog', 'dlg ask-dlg' + (danger ? ' is-danger' : ''));
+    d.setAttribute('role', 'alertdialog');
+    const h = el('h2', '', title);
+    h.id = 'ask-' + Math.random().toString(36).slice(2);
+    d.setAttribute('aria-labelledby', h.id);
+    const row = el('div', 'dlg-actions');
+    const yes = el('button', 'btn solid', ok);
+    yes.type = 'button';
+    row.append(yes);
+    let result = false;
+    let no = null;
+    if (!alertOnly) {
+      no = el('button', 'link', cancel);
+      no.type = 'button';
+      no.addEventListener('click', () => d.close());
+      row.append(no);
+    }
+    yes.addEventListener('click', () => { result = true; d.close(); });
+    d.addEventListener('close', () => { d.remove(); resolve(result); });
+    d.append(el('span', 'ask-icon', danger ? '!' : alertOnly ? 'i' : '?'), h, el('p', 'ask-msg', message), row);
+    document.body.append(d);
+    d.showModal();
+    (danger && no ? no : yes).focus();
+  });
+}
+export const tell = (message, title = "That didn't work") => ask(message, { title, ok: 'OK', alertOnly: true });
+
 export function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;

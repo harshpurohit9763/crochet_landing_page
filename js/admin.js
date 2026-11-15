@@ -1,7 +1,7 @@
 import {
   db, auth, googleSignIn, getProfile, STATUS, statusLabel, orderCode, fmtDate, THEMES, LAYOUTS, HERO_COLORS, setImage, el,
-  fmtPrice, offerInfo, comboInfo, optionsOf, cleanLabel, deliveryState, DELIVERY_NAMES, fmtWhen, bumpCatalog
-} from './firebase-shared.js?v=19';
+  ask, tell, fmtPrice, offerInfo, comboInfo, optionsOf, cleanLabel, deliveryState, DELIVERY_NAMES, fmtWhen, bumpCatalog
+} from './firebase-shared.js?v=20';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   doc, updateDoc, addDoc, deleteDoc, collection, query, orderBy, limit, onSnapshot, serverTimestamp, writeBatch, Timestamp
@@ -266,7 +266,7 @@ function orderCard(o) {
   label.append(sel);
   const err = el('span', 'error');
   sel.addEventListener('change', async () => {
-    if (sel.value === 'cancelled' && !confirm('Cancel order ' + code + '?')) { sel.value = o.status; return; }
+    if (sel.value === 'cancelled' && !await ask('Order ' + code + ' will be marked as cancelled.', { title: 'Cancel this order?', ok: 'Yes, cancel it', cancel: 'Keep it', danger: true })) { sel.value = o.status; return; }
     sel.disabled = true;
     try { await updateDoc(doc(db, 'orders', o.id), { status: sel.value, ['statusTimes.' + sel.value]: serverTimestamp(), updatedAt: serverTimestamp() }); }
     catch (e) { console.error(e); err.textContent = "Couldn't update. Try again."; sel.value = o.status; }
@@ -318,7 +318,7 @@ function btn(text, cls, onClick, label) {
   return b;
 }
 
-const fail = (what) => (e) => { console.error(e); alert("Couldn't " + what + '. Try again.'); };
+const fail = (what) => (e) => { console.error(e); tell("Couldn't " + what + '. Check your connection and try again.'); };
 
 async function swap(col, a, b) {
   if (!a || !b) return;
@@ -366,7 +366,7 @@ function prodRow(p, actions, extraTag) {
 }
 
 async function deleteProduct(p) {
-  if (!confirm('Delete "' + p.name + '"? This cannot be undone. Past orders keep its name.')) return;
+  if (!await ask('"' + p.name + '" and its photos will be removed from the shop. Past orders keep its name. This cannot be undone.', { title: 'Delete this product?', ok: 'Delete', cancel: 'Keep it', danger: true })) return;
   try {
     await deleteDoc(doc(db, 'products', p.id));
     const batch = writeBatch(db);
@@ -414,7 +414,7 @@ function renderCatalog() {
     else if (s.layout === 'banner') actions.append(btn('Pick 3 products', 'main', () => openPicker(s, 'banner')));
     else actions.append(btn('Select products', 'main', () => openPicker(s, 'section')));
     const del = btn('Delete', 'danger', async () => {
-      if (!confirm('Delete the section "' + s.title + '"? This cannot be undone.')) return;
+      if (!await ask('The section "' + s.title + '" will be removed from the shop. This cannot be undone.', { title: 'Delete this section?', ok: 'Delete', cancel: 'Keep it', danger: true })) return;
       try { await deleteDoc(doc(db, 'sections', s.id)); bumpCatalog(); } catch (e) { fail('delete')(e); }
     });
     del.disabled = items.length > 0;
@@ -479,7 +479,7 @@ function renderOffersBody(body, live) {
     info.append(m);
     const a = el('div', 'c-actions');
     a.append(btn('Edit', '', () => openCombo(c)), btn('Delete', 'danger', async () => {
-      if (!confirm('Delete the combo "' + ci.name + '"?')) return;
+      if (!await ask('The combo "' + ci.name + '" will be removed from the shop. Its products stay.', { title: 'Delete this combo?', ok: 'Delete', cancel: 'Keep it', danger: true })) return;
       try { await deleteDoc(doc(db, 'combos', c.id)); bumpCatalog(); } catch (e) { fail('delete')(e); }
     }));
     row.append(pics, info, a);
@@ -872,7 +872,7 @@ function openSection(s) {
 }
 $('c-new-section').addEventListener('click', () => openSection(null));
 $('c-new-product').addEventListener('click', () => {
-  if (!homeSections().length) { alert('Create a section first (grid, shelf or photo wall), then add products to it.'); return; }
+  if (!homeSections().length) { tell('Create a section first (grid, shelf or photo wall), then add products to it.', 'No section yet'); return; }
   openProduct(null);
 });
 $('sec-cancel').addEventListener('click', () => secDlg.close());
@@ -993,6 +993,25 @@ function renderOpts() {
     grp.append(head);
     const vals = el('ul', 'c-opt-values');
     g.values.forEach((v, vi) => {
+      // The first choice is the product itself, shown with its main photo.
+      if (vi === 0) {
+        const li = el('li', 'c-opt-value is-default');
+        const pic = el('span', 'c-opt-pic has');
+        pic.title = 'Uses the main product photo';
+        const img = el('img');
+        img.alt = '';
+        if (newPhoto) img.src = newPhoto; else if (v.image) setImage(img, v.image); else if (editingProduct) setImage(img, editingProduct.image);
+        pic.append(img);
+        const name = el('input');
+        name.maxLength = 40;
+        name.placeholder = gi === 0 ? 'Colour of the main product, e.g. Red' : 'Design of the main product, e.g. Rose';
+        name.value = v.label;
+        name.setAttribute('aria-label', 'Name of the default choice');
+        name.addEventListener('input', () => { v.label = name.value; });
+        li.append(pic, name, el('span', 'c-opt-default', 'Default'));
+        vals.append(li);
+        return;
+      }
       const li = el('li', 'c-opt-value');
       const pic = el('label', 'c-opt-pic');
       pic.title = 'Photo for this choice (optional)';
@@ -1006,13 +1025,13 @@ function renderOpts() {
       file.addEventListener('change', async () => {
         const f = file.files[0];
         if (!f || !f.type.startsWith('image/')) return;
-        try { v.newPhoto = await compress(f); img.src = v.newPhoto; pic.classList.add('has'); } catch (err) { console.error(err); alert("Couldn't read that photo."); }
+        try { v.newPhoto = await compress(f); img.src = v.newPhoto; pic.classList.add('has'); } catch (err) { console.error(err); tell("Couldn't read that photo. Try a JPG or PNG."); }
       });
       pic.append(img, el('span', '', 'Photo'), file);
       if (v.image || v.newPhoto) pic.classList.add('has');
       const li2 = el('input');
       li2.maxLength = 40;
-      li2.placeholder = (gi === 0 ? ['Pink', 'Blue', 'Yellow'] : ['Rose', 'Daisy', 'Tulip'])[vi % 3];
+      li2.placeholder = 'Choice ' + (vi + 1) + (gi === 0 ? ', e.g. Blue' : ', e.g. Daisy');
       li2.value = v.label;
       li2.setAttribute('aria-label', 'Choice name');
       li2.addEventListener('input', () => { v.label = li2.value; });
@@ -1020,7 +1039,7 @@ function renderOpts() {
       vals.append(li);
     });
     grp.append(vals);
-    const add = btn('Add a choice', '', () => {
+    const add = btn('Add another choice', '', () => {
       g.values.push({ label: '', image: '' });
       renderOpts();
       box.querySelectorAll('.c-opt-group')[gi].querySelector('.c-opt-values li:last-child input:not([type=file])').focus();
@@ -1090,6 +1109,7 @@ $('prod-file').addEventListener('change', async (e) => {
   try {
     newPhoto = await compress(f);
     $('prod-preview').src = newPhoto;
+    renderOpts();
   } catch (err) {
     console.error(err);
     newPhoto = null;
@@ -1101,7 +1121,8 @@ function checkOpts() {
   for (const g of optState) {
     const labels = g.values.map((v) => cleanLabel(v.label)).filter(Boolean);
     if (!g.name.trim()) return 'Give every option a name, like Colour.';
-    if (labels.length < 2) return 'Each option needs at least 2 choices. Remove the option if there is only one.';
+    if (!cleanLabel(g.values[0] && g.values[0].label)) return 'Name the default choice in ' + g.name.trim() + ' (the main product), like Red.';
+    if (labels.length < 2) return 'Add at least one more choice to ' + g.name.trim() + ' besides the default, or remove the option.';
     if (new Set(labels.map((l) => l.toLowerCase())).size !== labels.length) return 'Choices in ' + g.name.trim() + ' must have different names.';
   }
   return '';

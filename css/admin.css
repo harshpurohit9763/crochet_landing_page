@@ -159,6 +159,9 @@ body.admin { background: #F7F1EA; }
 .c-opt-pic:not(.has) img { display: none; }
 .c-opt-pic.has span { display: none; }
 .c-opt-pic input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.c-opt-value.is-default { grid-template-columns: 52px 1fr auto; }
+.c-opt-value.is-default .c-opt-pic { border-style: solid; border-color: var(--beet); cursor: default; }
+.c-opt-default { padding: 3px 10px; border-radius: 99px; background: var(--beet); color: #fff; font-size: 12px; font-weight: 700; }
 .c-opt-pic:focus-within { outline: 3px solid var(--beet); outline-offset: 2px; }
 .a-delivery { display: block; }
 .a-delivery.ok { background: #E3F4DD; }

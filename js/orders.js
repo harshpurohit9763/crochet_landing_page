@@ -1,4 +1,4 @@
-import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el, deliveryState, DELIVERY_NAMES } from './firebase-shared.js?v=19';
+import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el, deliveryState, DELIVERY_NAMES, ask, tell } from './firebase-shared.js?v=20';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
@@ -205,11 +205,11 @@ function card(o) {
     const cancel = el('button', 'link o-cancel', 'Cancel this order');
     cancel.type = 'button';
     cancel.addEventListener('click', async () => {
-      if (!confirm('Cancel order ' + code + '? This cannot be undone.')) return;
+      if (!await ask('Your order ' + code + ' will be cancelled. This cannot be undone.', { title: 'Cancel this order?', ok: 'Yes, cancel it', cancel: 'Keep my order', danger: true })) return;
       cancel.disabled = true;
       try {
         await updateDoc(doc(db, 'orders', o.id), { status: 'cancelled', cancelledBy: 'customer', 'statusTimes.cancelled': serverTimestamp(), updatedAt: serverTimestamp() });
-      } catch (e) { console.error(e); cancel.disabled = false; alert("Couldn't cancel. Check your connection and try again."); }
+      } catch (e) { console.error(e); cancel.disabled = false; tell("Couldn't cancel. Check your connection and try again."); }
     });
     li.append(cancel);
   }

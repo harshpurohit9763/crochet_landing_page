@@ -1,7 +1,7 @@
 import {
   db, auth, WHATSAPP, INSTAGRAM, HERO_COLORS, orderCode, googleSignIn, getProfile, setImage, el,
   fmtPrice, offerInfo, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
-} from './firebase-shared.js?v=19';
+} from './firebase-shared.js?v=20';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp
@@ -773,14 +773,15 @@ function renderDetail() {
     lg.append(g.name + ': ', chosen);
     fs.append(lg);
     const row = el('div', 'pd-chips');
-    g.values.forEach((v) => {
-      const b = el('button', 'pd-chip' + (v.image ? ' has-img' : ''));
+    g.values.forEach((v, vi) => {
+      const vimg = v.image || (vi === 0 && g.values.some((x) => x.image) ? p.image : '');
+      const b = el('button', 'pd-chip' + (vimg ? ' has-img' : ''));
       b.type = 'button';
       b.dataset.label = v.label;
-      if (v.image) {
+      if (vimg) {
         const t = el('img');
         t.alt = '';
-        lazyImage(t, v.image, true);
+        lazyImage(t, vimg, true);
         b.append(t);
       }
       b.append(el('span', '', v.label));
