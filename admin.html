@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Fingo admin</title>
+<title>LoopLove admin</title>
+<link rel="icon" href="brand/favicon-32.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=18">
-<link rel="stylesheet" href="css/admin.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=19">
+<link rel="stylesheet" href="css/admin.css?v=8">
 </head>
 <body class="admin">
 <header class="a-top">
-  <a class="a-logo" href="index.html">fingo</a>
+  <a class="a-logo" href="index.html"><img src="brand/logo-160.webp" alt="" width="40" height="40">LoopLove</a>
   <nav class="a-tabs" id="a-tabs" role="tablist" aria-label="Admin sections" hidden>
     <button class="a-tab" role="tab" id="tab-orders" aria-controls="v-orders" aria-selected="true">Orders</button>
     <button class="a-tab" role="tab" id="tab-catalog" aria-controls="v-catalog" aria-selected="false">Catalogue</button>
@@ -24,7 +25,8 @@
 
 <main class="a-main">
   <section class="a-gate" id="a-gate">
-    <h1>Fingo admin</h1>
+    <img class="a-gate-logo" src="brand/logo-320.webp" alt="" width="140" height="140">
+    <h1>LoopLove admin</h1>
     <p id="a-gate-msg">Sign in with your admin Google account.</p>
     <button class="btn solid" id="a-signin">Continue with Google</button>
   </section>
@@ -45,7 +47,10 @@
         <h2 class="c-title">Sections and products</h2>
         <p class="muted">Changes show on the shop as soon as you save. Sections appear in this order.</p>
       </div>
-      <button class="btn solid" id="c-new-section" type="button">New section</button>
+      <div class="c-head-btns">
+        <button class="btn" id="c-new-product" type="button">New product</button>
+        <button class="btn solid" id="c-new-section" type="button">New section</button>
+      </div>
     </div>
     <div class="c-sections" id="c-sections"></div>
   </section>
@@ -58,6 +63,7 @@
     <span class="error" id="sec-err-title"></span>
     <label>Short line under the title<input name="subtitle" maxlength="160"></label>
     <label>Layout<select name="layout" id="sec-layout"></select></label>
+    <p class="muted c-small" id="sec-layout-help"></p>
     <fieldset class="c-themes">
       <legend>Background</legend>
       <div class="c-theme-grid" id="sec-themes"></div>
@@ -84,6 +90,7 @@
     </div>
     <label>Name<input name="name" maxlength="80" required></label>
     <span class="error" id="prod-err-name"></span>
+    <label>Description (optional, shows on the product page)<textarea name="description" rows="3" maxlength="600" placeholder="Soft cotton yarn, about 6 cm, with a steel keyring."></textarea></label>
     <label>Price in rupees (leave empty to confirm on WhatsApp)<input name="price" type="number" min="0" step="1" inputmode="numeric"></label>
     <span class="error" id="prod-err-price"></span>
     <fieldset class="c-offer">
@@ -106,6 +113,13 @@
         <p class="muted c-small">While the offer runs, this product also shows as a coupon in Today's offers, and it stays in its own section too. Both go back to normal by themselves when the offer ends.</p>
       </div>
     </fieldset>
+    <fieldset class="c-opts">
+      <legend>Options like colour or design</legend>
+      <p class="muted c-small">Customers pick one of each on the product page. Give a choice its own photo and the page switches to it.</p>
+      <div id="prod-opts"></div>
+      <span class="error" id="prod-err-opts"></span>
+      <button class="c-btn" type="button" id="prod-add-group">Add an option</button>
+    </fieldset>
     <label>Section<select name="sectionId" id="prod-section"></select></label>
     <label class="c-check"><input type="checkbox" name="visible" checked> Show on the shop</label>
     <label class="c-check"><input type="checkbox" name="featured" id="prod-featured"> Show in the big opening banner</label>
@@ -121,6 +135,39 @@
   </form>
 </dialog>
 
-<script type="module" src="js/admin.js?v=11"></script>
+<dialog class="dlg dlg-wide c-pick-dlg" id="pick-dlg" aria-labelledby="pick-title">
+  <form class="form" id="pick-form" novalidate>
+    <h2 id="pick-title">Select products</h2>
+    <p class="muted" id="pick-help"></p>
+    <fieldset class="c-offer" id="pick-offer" hidden><legend>Offer</legend></fieldset>
+    <input type="search" id="pick-search" placeholder="Search products" aria-label="Search products">
+    <p class="c-pick-count" id="pick-count" aria-live="polite"></p>
+    <ul class="c-pick-list" id="pick-list"></ul>
+    <p class="error" id="pick-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button class="btn solid" type="submit" id="pick-save">Save</button>
+      <button class="link" type="button" id="pick-cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg dlg-wide" id="combo-dlg" aria-labelledby="combo-title">
+  <form class="form" id="combo-form" novalidate>
+    <h2 id="combo-title">New combo</h2>
+    <p class="muted">Pick 2 to 4 products. Customers buy them together at one lower price.</p>
+    <div id="combo-items"></div>
+    <button class="c-btn c-self" type="button" id="combo-add-item">Add another product</button>
+    <label>Combo name (optional)<input name="name" maxlength="80" placeholder="Cherry and daisy set"></label>
+    <fieldset class="c-offer"><legend>Combo discount</legend><div id="combo-offer"></div><p class="c-calc" id="combo-calc"></p></fieldset>
+    <label class="c-check"><input type="checkbox" name="visible" checked> Show on the shop</label>
+    <p class="error" id="combo-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button class="btn solid" type="submit" id="combo-save">Save combo</button>
+      <button class="link" type="button" id="combo-cancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/admin.js?v=12"></script>
 </body>
 </html>

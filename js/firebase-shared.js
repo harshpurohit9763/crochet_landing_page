@@ -49,7 +49,7 @@ export const LAYOUTS = [
   { id: 'grid', label: 'Product grid' },
   { id: 'shelf', label: 'Arch shelf (scrolls sideways)' },
   { id: 'gallery', label: 'Photo wall' },
-  { id: 'banner', label: 'Big banner (shows 3 photos from the next section)' },
+  { id: 'banner', label: 'Big banner (3 products you pick)' },
   { id: 'offers', label: 'Offer coupons (items show only while their offer runs)' }
 ];
 
@@ -85,6 +85,48 @@ export function fmtWhen(ms) {
   return new Date(ms).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 }
 
+// Combo: 2 to 4 products sold together at a discount on their normal prices.
+export function comboInfo(c, byId, now = Date.now()) {
+  const items = (c.productIds || []).map((id) => byId[id]).filter(Boolean);
+  const complete = items.length === (c.productIds || []).length && items.length >= 2;
+  const original = complete && items.every((p) => Number(p.price) > 0) ? items.reduce((a, p) => a + Math.round(Number(p.price)), 0) : null;
+  const percent = Math.round(Number(c.percent) || 0);
+  const endsAt = toMillis(c.endsAt);
+  const active = !!(original && c.visible !== false && items.every((p) => p.visible !== false) && percent > 0 && percent < 100 && endsAt && endsAt > now);
+  const price = original ? Math.round(original * (100 - percent) / 100) : null;
+  const name = c.name || items.map((p) => p.name).join(' + ');
+  return { items, active, price, original, percent, endsAt, save: original ? original - price : 0, name };
+}
+
+// Product options such as colour and design. Each group: { name, values: [{ label, image }] }.
+export function optionsOf(p) {
+  return (Array.isArray(p.options) ? p.options : [])
+    .map((g) => ({ name: String(g.name || '').trim(), values: (g.values || []).filter((v) => v && String(v.label || '').trim()) }))
+    .filter((g) => g.name && g.values.length);
+}
+
+/* Basket keys: a product id, a product id plus chosen option labels joined by ~, or combo:<id>. */
+export const cleanLabel = (s) => String(s || '').replace(/[~|]/g, '-').trim().slice(0, 40);
+export function variantKey(id, picks) {
+  return picks && picks.length ? id + '~' + picks.map(cleanLabel).join('~') : id;
+}
+export function parseKey(key) {
+  if (key.startsWith('combo:')) return { combo: true, id: key.slice(6), picks: [] };
+  const [id, ...picks] = key.split('~');
+  return { combo: false, id, picks };
+}
+
+/* Delivery: the admin quotes normal (and optionally fast) delivery; the customer accepts one.
+   A free quote (normal 0, no fast) needs no acceptance. */
+export function deliveryState(o) {
+  const d = o.delivery;
+  if (o.customerConfirmed) return 'accepted';
+  if (d && typeof d.normal === 'number') return d.normal === 0 && d.fast == null ? 'free' : 'quoted';
+  if (typeof o.deliveryCharge === 'number') return 'legacy';
+  return 'none';
+}
+export const DELIVERY_NAMES = { normal: 'Normal delivery', fast: 'Fast delivery' };
+
 export const HERO_COLORS = [
   { id: 'cherry', label: 'Cherry red', c: '#C8102E', t: '#FFE9DC' },
   { id: 'forest', label: 'Forest green', c: '#15301C', t: '#FFD84D' },
@@ -95,7 +137,7 @@ export const HERO_COLORS = [
 ];
 
 export function orderCode(id) {
-  return 'FG-' + id.slice(0, 6).toUpperCase();
+  return 'LL-' + id.slice(0, 6).toUpperCase();
 }
 
 export function fmtDate(ts) {
@@ -176,7 +218,7 @@ export function setImage(img, image) {
 const VERSION_KEY = 'fingo-catalog-version';
 
 export async function loadCatalog() {
-  const qs = [query(collection(db, 'sections'), orderBy('order')), query(collection(db, 'products'), orderBy('order'))];
+  const qs = [query(collection(db, 'sections'), orderBy('order')), query(collection(db, 'products'), orderBy('order')), collection(db, 'combos')];
   let version = null;
   try {
     const m = await getDoc(doc(db, 'meta', 'catalog'));
@@ -187,13 +229,13 @@ export async function loadCatalog() {
   try { known = localStorage.getItem(VERSION_KEY); } catch (e) {}
   if (version && version === known) {
     try {
-      const [s, p] = await Promise.all(qs.map((q) => getDocsFromCache(q)));
-      if (!s.empty && !p.empty) return { sections: s, products: p, fromCache: true };
+      const [s, p, c] = await Promise.all(qs.map((q) => getDocsFromCache(q)));
+      if (!s.empty && !p.empty) return { sections: s, products: p, combos: c, fromCache: true };
     } catch (e) { /* cache missing: fall through to the server */ }
   }
-  const [s, p] = await Promise.all(qs.map((q) => getDocs(q)));
+  const [s, p, c] = await Promise.all(qs.map((q) => getDocs(q)));
   try { if (version) localStorage.setItem(VERSION_KEY, version); } catch (e) {}
-  return { sections: s, products: p, fromCache: false };
+  return { sections: s, products: p, combos: c, fromCache: false };
 }
 
 export function bumpCatalog() {

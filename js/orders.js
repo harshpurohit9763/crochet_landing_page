@@ -1,6 +1,6 @@
-import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el } from './firebase-shared.js?v=17';
+import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el, deliveryState, DELIVERY_NAMES } from './firebase-shared.js?v=18';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { collection, query, where, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
 const $ = (id) => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -13,7 +13,7 @@ const STEPS = [
   ['delivered', 'Delivered']
 ];
 const SAY = {
-  new: "Got it! We'll confirm your order and delivery charge soon.",
+  new: "Got it! We'll confirm your order soon.",
   confirmed: 'Confirmed. Your yarn is picked out and ready to go.',
   making: 'Your piece is on the hook right now, loop by loop.',
   shipped: 'Packed with love and on its way to you.',
@@ -93,6 +93,52 @@ function tracker(o) {
   return box;
 }
 
+// The customer picks normal or fast delivery and accepts it; only then can we confirm the order.
+function quoteBox(o, sum) {
+  const box = el('div', 'o-quote');
+  box.append(el('h3', '', 'Choose your delivery'));
+  const opts = el('div', 'o-quote-opts');
+  const choices = [['normal', o.delivery.normal], ['fast', o.delivery.fast]].filter(([, v]) => typeof v === 'number');
+  let pick = choices[0][0];
+  const total = el('p', 'o-quote-total');
+  const accept = el('button', 'btn solid', '');
+  accept.type = 'button';
+  const sync = () => {
+    const v = o.delivery[pick];
+    total.replaceChildren('Items ' + fmtPrice(sum) + ' + ' + DELIVERY_NAMES[pick].toLowerCase() + ' ' + (v ? fmtPrice(v) : 'free') + ' = ', el('strong', '', fmtPrice(sum + v)));
+    accept.textContent = 'Accept ' + DELIVERY_NAMES[pick].toLowerCase() + ' and confirm';
+  };
+  choices.forEach(([k, v]) => {
+    const lab = el('label', 'o-opt');
+    const r = el('input');
+    r.type = 'radio';
+    r.name = 'dl-' + o.id;
+    r.value = k;
+    r.checked = k === pick;
+    r.addEventListener('change', () => { pick = k; sync(); });
+    const t = el('span', 'o-opt-text');
+    t.append(el('strong', '', DELIVERY_NAMES[k]), el('span', '', k === 'fast' ? 'Reaches you sooner' : 'Our usual courier'));
+    lab.append(r, t, el('span', 'o-opt-price', v ? fmtPrice(v) : 'Free'));
+    opts.append(lab);
+  });
+  const warn = el('p', 'o-nonref');
+  warn.append(el('strong', '', 'Delivery charges are non-refundable.'), ' Once you accept, the delivery charge has to be paid. We share payment details on WhatsApp.');
+  const err = el('p', 'error');
+  accept.addEventListener('click', async () => {
+    accept.disabled = true;
+    err.textContent = '';
+    try {
+      await updateDoc(doc(db, 'orders', o.id), {
+        deliveryChoice: pick, deliveryCharge: o.delivery[pick], customerConfirmed: true,
+        customerConfirmedAt: serverTimestamp(), updatedAt: serverTimestamp()
+      });
+    } catch (e) { console.error(e); accept.disabled = false; err.textContent = "Couldn't save your choice. Check your connection and try again."; }
+  });
+  sync();
+  box.append(opts, total, warn, accept, err);
+  return box;
+}
+
 function card(o) {
   const li = el('li', 'o-card');
   const code = orderCode(o.id);
@@ -101,8 +147,15 @@ function card(o) {
   h.append(el('h2', '', code), el('p', 'muted', 'Placed ' + fmtDate(o.createdAt)));
   head.append(h);
   li.append(head, tracker(o));
-  const say = el('p', 'o-say s-' + o.status, SAY[o.status] || '');
-  li.append(say);
+  const state = deliveryState(o);
+  let said = SAY[o.status] || '';
+  if (o.status === 'new') {
+    if (state === 'none') said = "Got it! We're working out delivery to your address. You'll pick Normal or Fast delivery here soon.";
+    if (state === 'quoted') said = 'Your delivery options are ready. Pick one below to confirm your order.';
+    if (state === 'accepted') said = 'Thanks! You chose ' + (DELIVERY_NAMES[o.deliveryChoice] || 'delivery').toLowerCase() + ". We'll share payment details on WhatsApp and confirm your order.";
+  }
+  if (o.status === 'cancelled' && o.cancelledBy === 'customer') said = 'You cancelled this order.';
+  li.append(el('p', 'o-say s-' + o.status + (o.status === 'new' && state === 'quoted' ? ' s-action' : ''), said));
 
   const items = el('ul', 'o-items');
   let sum = 0, unpriced = 0, saved = 0;
@@ -110,6 +163,8 @@ function card(o) {
     const row = el('li');
     const left = el('div');
     left.append(el('span', 'o-item-name', i.qty + ' x ' + i.name));
+    if (i.options) left.append(el('span', 'o-item-opt', i.options));
+    if (i.combo && i.combo.length) left.append(el('span', 'o-item-opt', 'Combo: ' + i.combo.join(' + ')));
     if (i.note) left.append(el('span', 'o-item-note', i.note));
     row.append(left);
     if (i.price) {
@@ -141,12 +196,26 @@ function card(o) {
   const row = (k, v, cls) => { const d = el('div', cls || ''); d.append(el('dt', '', k), el('dd', '', v)); totals.append(d); };
   row('Items', sum ? fmtPrice(sum) + (unpriced ? ' + priced on WhatsApp' : '') : 'Priced on WhatsApp');
   if (saved) row('You saved', fmtPrice(saved), 'saved');
-  row('Delivery', hasDelivery ? (o.deliveryCharge === 0 ? 'Free' : fmtPrice(o.deliveryCharge)) : 'Added after we confirm', hasDelivery ? '' : 'pending');
+  const dname = o.deliveryChoice === 'fast' ? 'Fast delivery' : 'Delivery';
+  row(dname, hasDelivery ? (o.deliveryCharge === 0 ? 'Free' : fmtPrice(o.deliveryCharge)) : state === 'quoted' ? 'Choose below' : 'Added soon', hasDelivery ? '' : 'pending');
   if (sum) row('Total', fmtPrice(sum + (hasDelivery ? o.deliveryCharge : 0)) + (hasDelivery ? '' : ' + delivery'), 'grand');
   li.append(totals);
+  if (o.status === 'new' && state === 'quoted') li.append(quoteBox(o, sum));
+  if (o.status === 'new' && ['none', 'quoted', 'legacy'].includes(state)) {
+    const cancel = el('button', 'link o-cancel', 'Cancel this order');
+    cancel.type = 'button';
+    cancel.addEventListener('click', async () => {
+      if (!confirm('Cancel order ' + code + '? This cannot be undone.')) return;
+      cancel.disabled = true;
+      try {
+        await updateDoc(doc(db, 'orders', o.id), { status: 'cancelled', cancelledBy: 'customer', 'statusTimes.cancelled': serverTimestamp(), updatedAt: serverTimestamp() });
+      } catch (e) { console.error(e); cancel.disabled = false; alert("Couldn't cancel. Check your connection and try again."); }
+    });
+    li.append(cancel);
+  }
 
   const ask = el('a', 'link o-ask', 'Ask about this order on WhatsApp');
-  ask.href = 'https://api.whatsapp.com/send?phone=' + WHATSAPP + '&text=' + encodeURIComponent('Hi Fingo! A question about my order ' + code + ': ');
+  ask.href = 'https://api.whatsapp.com/send?phone=' + WHATSAPP + '&text=' + encodeURIComponent('Hi LoopLove! A question about my order ' + code + ': ');
   ask.target = '_blank';
   ask.rel = 'noopener';
   li.append(ask);

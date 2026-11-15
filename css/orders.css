@@ -61,7 +61,29 @@
 .o-totals .grand dd { font-family: var(--display); font-weight: 400; font-size: 24px; color: var(--beet); }
 .o-ask { display: inline-block; margin-top: 14px; }
 
+.o-item-opt { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: #5B3B8C; }
+.o-say.s-action { background: #FFF1C9; color: #5A3B00; }
+.o-quote { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; padding: 18px; border-radius: 20px; border: 2px dashed #E7A90E; background: #FFFAEB; }
+.o-quote h3 { font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.1; color: var(--beet); }
+.o-quote-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.o-opt { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; padding: 14px; border-radius: 16px; border: 2px solid #EBC9D6; background: #fff; cursor: pointer; transition: border-color .2s, transform .2s cubic-bezier(.3, 1.7, .5, 1); }
+.o-opt:hover { border-color: var(--beet); }
+.o-opt:has(input:checked) { border-color: var(--beet); box-shadow: 0 0 0 2px var(--beet) inset; background: #FFF4F7; transform: translateY(-2px); }
+.o-opt:has(input:focus-visible) { outline: 3px solid var(--plum); outline-offset: 2px; }
+.o-opt input { width: 20px; height: 20px; accent-color: var(--beet); }
+.o-opt-text { display: flex; flex-direction: column; line-height: 1.25; }
+.o-opt-text span { font-size: 13px; color: #8C6B78; }
+.o-opt-price { font-family: var(--display); font-size: 22px; color: var(--beet); }
+.o-quote-total { font-size: 15px; }
+.o-quote-total strong { font-size: 19px; color: var(--beet); }
+.o-nonref { padding: 10px 12px; border-radius: 12px; background: #FFE3E3; color: #6A1020; font-size: 14px; line-height: 1.45; }
+.o-nonref strong { display: block; color: #B3123C; }
+.o-quote .btn { align-self: flex-start; }
+.o-cancel { display: block; margin-top: 12px; color: #B3123C; font-size: 15px; }
+.o-cancel:disabled { opacity: .5; }
+
 @media (max-width: 560px) {
+  .o-quote .btn { align-self: stretch; }
   .track-step:not(.now) .track-label, .track-step:not(.now) .track-time { visibility: hidden; }
   .track-step.now .track-label, .track-step.now .track-time { white-space: nowrap; }
   .track-step.now:first-child { align-items: flex-start; }

@@ -12,6 +12,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function validQuote(q) {
+      return q is map && q.keys().hasOnly(['normal', 'fast'])
+        && q.normal is int && q.normal >= 0 && q.normal <= 10000
+        && (q.get('fast', null) == null || (q.fast is int && q.fast >= 0 && q.fast <= 10000));
+    }
+
+    function isFree(d) {
+      return 'delivery' in d && d.delivery.normal == 0 && d.delivery.get('fast', null) == null;
+    }
+
     function validProfile(d) {
       return d.name is string && d.name.size() > 0 && d.name.size() <= 80
         && d.phone is string && d.phone.size() >= 10 && d.phone.size() <= 16
@@ -63,12 +73,34 @@ service cloud.firestore {
 
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
 
+      // Admin: moves status and quotes delivery. An order can only go past 'new' once the
+      // customer has accepted the delivery charge, or delivery is free.
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'statusTimes', 'deliveryCharge', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'statusTimes', 'deliveryCharge', 'delivery', 'deliveryChoice', 'updatedAt'])
         && request.resource.data.status in ['new', 'confirmed', 'making', 'shipped', 'delivered', 'cancelled']
+        && (request.resource.data.status in ['new', 'cancelled']
+          || resource.data.status in ['confirmed', 'making', 'shipped', 'delivered']
+          || resource.data.get('customerConfirmed', false) == true
+          || isFree(request.resource.data))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['delivery', 'deliveryChoice'])
+          || (resource.data.get('customerConfirmed', false) != true && validQuote(request.resource.data.delivery)))
         && (!('deliveryCharge' in request.resource.data)
           || request.resource.data.deliveryCharge == null
           || (request.resource.data.deliveryCharge is int && request.resource.data.deliveryCharge >= 0 && request.resource.data.deliveryCharge <= 10000));
+
+      // Customer: accept one of the quoted delivery options, or cancel before accepting.
+      allow update: if signedIn() && resource.data.uid == request.auth.uid
+        && resource.data.status == 'new'
+        && resource.data.get('customerConfirmed', false) != true
+        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryChoice', 'deliveryCharge', 'customerConfirmed', 'customerConfirmedAt', 'updatedAt'])
+            && 'delivery' in resource.data
+            && request.resource.data.customerConfirmed == true
+            && request.resource.data.deliveryChoice in ['normal', 'fast']
+            && resource.data.delivery.get(request.resource.data.deliveryChoice, null) is int
+            && request.resource.data.deliveryCharge == resource.data.delivery[request.resource.data.deliveryChoice])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'statusTimes', 'cancelledBy', 'updatedAt'])
+            && request.resource.data.status == 'cancelled'
+            && request.resource.data.cancelledBy == 'customer'));
 
       allow delete: if false;
     }
@@ -80,6 +112,11 @@ service cloud.firestore {
     }
 
     match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /combos/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
