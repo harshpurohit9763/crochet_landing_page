@@ -1,10 +1,10 @@
 import {
   db, auth, WHATSAPP, INSTAGRAM, HERO_COLORS, orderCode, googleSignIn, getProfile, setImage, el,
-  fmtPrice, offerInfo, choiceOffer, lowestPrice, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
-} from './firebase-shared.js?v=21';
+  stars, ask, tell, fmtDate, fmtPrice, offerInfo, choiceOffer, lowestPrice, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
+} from './firebase-shared.js?v=22';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
-  collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp
+  collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp, query, where, getDocs, deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
 const F = (window.FINGO = window.FINGO || {});
@@ -810,9 +810,66 @@ function renderDetail() {
       deals.append(card);
     });
   }
+  loadReviews(p);
   $('pd-ask').href = waLink('Hi LoopLove! A question about ' + p.name + ': ');
   $('pd-msg').replaceChildren();
   syncQty();
+}
+
+// Reviews come from customers whose order with this product was delivered.
+let reviewsFor = null;
+async function loadReviews(p) {
+  const box = $('pd-reviews');
+  reviewsFor = p.id;
+  box.hidden = true;
+  box.replaceChildren();
+  let list = [];
+  try {
+    const snap = await getDocs(query(collection(db, 'reviews'), where('productId', '==', p.id)));
+    list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (e) { console.error(e); return; }
+  if (reviewsFor !== p.id) return;
+  list.sort((a, b) => ((b.updatedAt && b.updatedAt.seconds) || 0) - ((a.updatedAt && a.updatedAt.seconds) || 0));
+  const head = el('div', 'pd-rev-head');
+  const h = el('h3', '', 'Reviews');
+  h.id = 'pd-reviews-title';
+  head.append(h);
+  if (list.length) {
+    const avg = list.reduce((a, r) => a + r.rating, 0) / list.length;
+    const sum = el('p', 'pd-rev-avg');
+    sum.append(el('strong', '', avg.toFixed(1)), el('span', 'stars', stars(Math.floor(avg))), el('span', '', list.length + (list.length === 1 ? ' review' : ' reviews')));
+    sum.setAttribute('aria-label', 'Rated ' + avg.toFixed(1) + ' out of 5 from ' + list.length + ' reviews');
+    head.append(sum);
+  }
+  box.append(head);
+  if (!list.length) {
+    box.append(el('p', 'pd-rev-empty', 'No reviews yet. Customers can review it in Your orders once it reaches them.'));
+  }
+  const isAdmin = !!(profile && profile.role === 'admin');
+  const ul = el('ul', 'pd-rev-list');
+  list.slice(0, 30).forEach((r) => {
+    const li = el('li', 'pd-rev');
+    const top = el('div', 'pd-rev-top');
+    const st = el('span', 'stars', stars(r.rating));
+    st.setAttribute('aria-label', r.rating + ' out of 5');
+    top.append(st, el('strong', '', r.name || 'Customer'), el('span', 'pd-rev-date', fmtDate(r.updatedAt || r.createdAt)));
+    li.append(top);
+    if (r.options) li.append(el('span', 'pd-rev-opt', r.options));
+    if (r.text) li.append(el('p', '', r.text));
+    li.append(el('span', 'pd-rev-verified', 'Verified buyer'));
+    if (isAdmin) {
+      const del = el('button', 'link pd-rev-del', 'Remove review');
+      del.type = 'button';
+      del.addEventListener('click', async () => {
+        if (!await ask('This review by ' + (r.name || 'a customer') + ' will be removed from the shop.', { title: 'Remove this review?', ok: 'Remove', cancel: 'Keep it', danger: true })) return;
+        try { await deleteDoc(doc(db, 'reviews', r.id)); loadReviews(p); } catch (e) { console.error(e); tell("Couldn't remove the review. Try again."); }
+      });
+      li.append(del);
+    }
+    ul.append(li);
+  });
+  box.append(ul);
+  box.hidden = false;
 }
 
 function renderPdPrice() {

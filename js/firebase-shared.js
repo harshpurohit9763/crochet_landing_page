@@ -289,6 +289,8 @@ export function ask(message, { title = 'Are you sure?', ok = 'Yes', cancel = 'Go
 }
 export const tell = (message, title = "That didn't work") => ask(message, { title, ok: 'OK', alertOnly: true });
 
+export const stars = (n) => '★★★★★'.slice(0, Math.round(n)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(n));
+
 export function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;

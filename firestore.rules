@@ -117,6 +117,23 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // reviews/{orderId_productId}: one review per product per delivered order, written by
+    // the customer who placed that order. Anyone can read; admins can remove.
+    match /reviews/{id} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'orderId', 'productId', 'name', 'rating', 'text', 'options', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.orderId + '_' + request.resource.data.productId
+        && request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.text is string && request.resource.data.text.size() <= 1000
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && (resource == null || resource.data.uid == request.auth.uid)
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.uid == request.auth.uid
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'delivered';
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
     match /combos/{id} {
       allow read: if true;
       allow write: if isAdmin();

@@ -1,6 +1,6 @@
-import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el, deliveryState, DELIVERY_NAMES, ask, tell } from './firebase-shared.js?v=21';
+import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el, deliveryState, DELIVERY_NAMES, ask, tell, parseKey, stars } from './firebase-shared.js?v=22';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { collection, query, where, onSnapshot, doc, updateDoc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
 const $ = (id) => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -22,6 +22,10 @@ const SAY = {
 };
 
 let unsub = null;
+let unsubReviews = null;
+let rows = [];
+let myReviews = {};
+const openForms = new Set();
 const seen = new Set();
 
 $('o-signin').addEventListener('click', async () => {
@@ -31,15 +35,32 @@ $('o-signin').addEventListener('click', async () => {
 
 onAuthStateChanged(auth, (u) => {
   if (unsub) { unsub(); unsub = null; }
+  if (unsubReviews) { unsubReviews(); unsubReviews = null; }
+  myReviews = {};
+  rows = [];
   $('o-email').textContent = u ? u.email : '';
   $('o-gate').hidden = !!u;
   $('o-app').hidden = !u;
   if (!u) return;
   const list = $('o-list');
   list.replaceChildren(el('p', 'muted', 'Loading your orders…'));
+  unsubReviews = onSnapshot(query(collection(db, 'reviews'), where('uid', '==', u.uid)), (snap) => {
+    myReviews = Object.fromEntries(snap.docs.map((d) => [d.id, d.data()]));
+    if (rows.length) render();
+  }, (e) => console.error(e));
   unsub = onSnapshot(query(collection(db, 'orders'), where('uid', '==', u.uid)), (snap) => {
-    const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
       .sort((a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0));
+    render();
+  }, (e) => {
+    console.error(e);
+    list.replaceChildren(el('p', 'error', "Couldn't load your orders. Check your connection and refresh."));
+  });
+});
+
+function render() {
+  const list = $('o-list');
+  {
     list.replaceChildren();
     if (!rows.length) {
       const p = el('div', 'o-empty');
@@ -51,11 +72,94 @@ onAuthStateChanged(auth, (u) => {
       return;
     }
     rows.forEach((o) => list.append(card(o)));
-  }, (e) => {
-    console.error(e);
-    list.replaceChildren(el('p', 'error', "Couldn't load your orders. Check your connection and refresh."));
+  }
+}
+
+// Inline review for one product of a delivered order: stars, a few words, post or edit.
+function reviewBox(o, i, pid) {
+  const id = o.id + '_' + pid;
+  const mine = myReviews[id];
+  const box = el('div', 'o-review');
+  if (mine && !openForms.has(id)) {
+    const line = el('p', 'o-review-done');
+    line.append(el('span', 'stars', stars(mine.rating)), ' ', el('span', '', mine.text ? '“' + mine.text + '”' : 'Rated'));
+    const edit = el('button', 'link', 'Edit');
+    edit.type = 'button';
+    edit.addEventListener('click', () => { openForms.add(id); render(); });
+    box.append(line, edit);
+    return box;
+  }
+  if (!openForms.has(id)) {
+    const b = el('button', 'o-rate', 'Rate and review');
+    b.type = 'button';
+    b.addEventListener('click', () => { openForms.add(id); render(); });
+    box.append(b);
+    return box;
+  }
+  let rating = mine ? mine.rating : 0;
+  const form = el('form', 'o-review-form');
+  const pick = el('div', 'o-stars');
+  pick.setAttribute('role', 'radiogroup');
+  pick.setAttribute('aria-label', 'Your rating');
+  const hint = el('span', 'o-stars-hint');
+  const WORDS = ['', 'Not for me', 'Okay', 'Good', 'Really nice', 'Loved it!'];
+  const btns = [1, 2, 3, 4, 5].map((n) => {
+    const s = el('button', 'o-star', '★');
+    s.type = 'button';
+    s.setAttribute('role', 'radio');
+    s.setAttribute('aria-label', n + (n === 1 ? ' star' : ' stars'));
+    s.addEventListener('click', () => { rating = n; sync(); });
+    pick.append(s);
+    return s;
   });
-});
+  const sync = () => {
+    btns.forEach((s, k) => { s.classList.toggle('on', k < rating); s.setAttribute('aria-checked', k + 1 === rating); });
+    hint.textContent = WORDS[rating] || 'Tap a star';
+  };
+  pick.append(hint);
+  const ta = el('textarea');
+  ta.rows = 3;
+  ta.maxLength = 1000;
+  ta.placeholder = 'How do you like it? Colour, size, how it looks…';
+  ta.value = mine ? mine.text || '' : '';
+  ta.setAttribute('aria-label', 'Your review of ' + i.name);
+  const err = el('p', 'error');
+  const row = el('div', 'o-review-actions');
+  const post = el('button', 'btn solid', mine ? 'Save review' : 'Post review');
+  post.type = 'submit';
+  const cancel = el('button', 'link', 'Cancel');
+  cancel.type = 'button';
+  cancel.addEventListener('click', () => { openForms.delete(id); render(); });
+  row.append(post, cancel);
+  if (mine) {
+    const del = el('button', 'link o-cancel', 'Delete review');
+    del.type = 'button';
+    del.addEventListener('click', async () => {
+      if (!await ask('Your review of ' + i.name + ' will be removed.', { title: 'Delete your review?', ok: 'Delete', cancel: 'Keep it', danger: true })) return;
+      try { await deleteDoc(doc(db, 'reviews', id)); openForms.delete(id); render(); } catch (e) { console.error(e); tell("Couldn't delete your review. Try again."); }
+    });
+    row.append(del);
+  }
+  form.append(pick, ta, err, row);
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!rating) { err.textContent = 'Tap the stars to rate it.'; return; }
+    post.disabled = true;
+    try {
+      await setDoc(doc(db, 'reviews', id), {
+        uid: o.uid, orderId: o.id, productId: pid,
+        name: String((o.customer && o.customer.name) || 'Customer').split(' ')[0].slice(0, 40),
+        rating, text: ta.value.trim().slice(0, 1000), options: i.options || '',
+        createdAt: mine && mine.createdAt ? mine.createdAt : serverTimestamp(), updatedAt: serverTimestamp()
+      });
+      openForms.delete(id);
+      render();
+    } catch (e2) { console.error(e2); post.disabled = false; err.textContent = "Couldn't post your review. Check your connection and try again."; }
+  });
+  sync();
+  box.append(form);
+  return box;
+}
 
 function tracker(o) {
   const cancelled = o.status === 'cancelled';
@@ -159,6 +263,7 @@ function card(o) {
 
   const items = el('ul', 'o-items');
   let sum = 0, unpriced = 0, saved = 0;
+  const reviewed = new Set();
   (o.items || []).forEach((i) => {
     const row = el('li');
     const left = el('div');
@@ -187,6 +292,13 @@ function card(o) {
       row.append(el('span', 'o-item-price muted', 'On WhatsApp'));
     }
     items.append(row);
+    const k = parseKey(String(i.id || ''));
+    if (o.status === 'delivered' && !k.combo && k.id && !reviewed.has(k.id)) {
+      reviewed.add(k.id);
+      const r = el('li', 'o-review-row');
+      r.append(reviewBox(o, i, k.id));
+      items.append(r);
+    }
   });
   li.append(items);
   if (o.note) li.append(el('p', 'o-note', 'Note: ' + o.note));

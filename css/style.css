@@ -367,6 +367,24 @@ img[data-loading] { background-color: #F7E3EB; background-image: repeating-linea
 .pd-chip:hover { border-color: var(--beet); }
 .pd-chip[aria-pressed="true"] { border-color: var(--beet); background: #FFF0F5; box-shadow: 0 0 0 2px var(--beet) inset; }
 .pd-chip.has-img { padding: 4px 12px 4px 4px; }
+/* reviews */
+.stars { color: #E7A90E; letter-spacing: 2px; }
+.pd-reviews { display: flex; flex-direction: column; gap: 12px; padding-top: 6px; border-top: 2px dashed #F0D7E0; }
+.pd-reviews[hidden] { display: none; }
+.pd-rev-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.pd-rev-head h3 { font-family: var(--display); font-weight: 400; font-size: 28px; color: var(--beet); }
+.pd-rev-avg { display: flex; align-items: baseline; gap: 8px; font-size: 14px; color: #6A4651; }
+.pd-rev-avg strong { font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--plum); }
+.pd-rev-avg .stars { font-size: 18px; }
+.pd-rev-empty { padding: 12px 14px; border-radius: 14px; background: #fff; font-size: 15px; color: #6A4651; }
+.pd-rev-list { display: flex; flex-direction: column; gap: 10px; }
+.pd-rev { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; background: #fff; }
+.pd-rev-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.pd-rev-date { margin-left: auto; font-size: 13px; color: #9A7B88; }
+.pd-rev-opt { font-size: 13px; font-weight: 600; color: #5B3B8C; }
+.pd-rev p { font-size: 15px; line-height: 1.5; }
+.pd-rev-verified { align-self: flex-start; padding: 1px 8px; border-radius: 99px; background: #E3F4DD; color: #22561A; font-size: 12px; font-weight: 700; }
+.pd-rev-del { align-self: flex-start; font-size: 13px; color: #B3123C; }
 .pd-chip-price { font-size: 13px; font-weight: 700; color: #C8102E; }
 .pt-from { margin-right: 4px; font-family: var(--body); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .pd-chip img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: var(--blush); }

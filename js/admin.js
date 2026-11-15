@@ -1,7 +1,7 @@
 import {
   db, auth, googleSignIn, getProfile, STATUS, statusLabel, orderCode, fmtDate, THEMES, LAYOUTS, HERO_COLORS, setImage, el,
   ask, tell, fmtPrice, offerInfo, comboInfo, optionsOf, cleanLabel, deliveryState, DELIVERY_NAMES, fmtWhen, bumpCatalog
-} from './firebase-shared.js?v=21';
+} from './firebase-shared.js?v=22';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   doc, updateDoc, addDoc, deleteDoc, collection, query, orderBy, limit, onSnapshot, serverTimestamp, writeBatch, Timestamp
