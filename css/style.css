@@ -367,6 +367,8 @@ img[data-loading] { background-color: #F7E3EB; background-image: repeating-linea
 .pd-chip:hover { border-color: var(--beet); }
 .pd-chip[aria-pressed="true"] { border-color: var(--beet); background: #FFF0F5; box-shadow: 0 0 0 2px var(--beet) inset; }
 .pd-chip.has-img { padding: 4px 12px 4px 4px; }
+.pd-chip-price { font-size: 13px; font-weight: 700; color: #C8102E; }
+.pt-from { margin-right: 4px; font-family: var(--body); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .pd-chip img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: var(--blush); }
 .pd-buy { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
 .pd-qty { display: flex; align-items: center; height: 52px; border-radius: 99px; border: 2px solid #EBC9D6; background: #fff; font-weight: 700; }

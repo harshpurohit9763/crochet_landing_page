@@ -1,7 +1,7 @@
 import {
   db, auth, googleSignIn, getProfile, STATUS, statusLabel, orderCode, fmtDate, THEMES, LAYOUTS, HERO_COLORS, setImage, el,
   ask, tell, fmtPrice, offerInfo, comboInfo, optionsOf, cleanLabel, deliveryState, DELIVERY_NAMES, fmtWhen, bumpCatalog
-} from './firebase-shared.js?v=20';
+} from './firebase-shared.js?v=21';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   doc, updateDoc, addDoc, deleteDoc, collection, query, orderBy, limit, onSnapshot, serverTimestamp, writeBatch, Timestamp
@@ -1009,6 +1009,7 @@ function renderOpts() {
         name.setAttribute('aria-label', 'Name of the default choice');
         name.addEventListener('input', () => { v.label = name.value; });
         li.append(pic, name, el('span', 'c-opt-default', 'Default'));
+        li.append(el('span', 'c-opt-price-note', 'Price: the product price above'));
         vals.append(li);
         return;
       }
@@ -1035,7 +1036,12 @@ function renderOpts() {
       li2.value = v.label;
       li2.setAttribute('aria-label', 'Choice name');
       li2.addEventListener('input', () => { v.label = li2.value; });
-      li.append(pic, li2, btn('×', 'c-icon danger', () => { g.values.splice(vi, 1); renderOpts(); }, 'Remove this choice'));
+      const pl = el('label', 'c-opt-price');
+      const pi = numInput(Number(v.price) > 0 ? Number(v.price) : null, 'Same price');
+      pi.setAttribute('aria-label', 'Price for this choice in rupees (optional)');
+      pi.addEventListener('input', () => { v.price = pi.value; });
+      pl.append('₹', pi);
+      li.append(pic, li2, btn('×', 'c-icon danger', () => { g.values.splice(vi, 1); renderOpts(); }, 'Remove this choice'), pl);
       vals.append(li);
     });
     grp.append(vals);
@@ -1073,7 +1079,7 @@ function openProduct(p, sectionId) {
   $('prod-file').value = '';
   ['photo', 'name', 'price', 'offer', 'opts'].forEach((k) => { $('prod-err-' + k).textContent = ''; });
   $('prod-msg').textContent = '';
-  optState = p ? optionsOf(p).map((g) => ({ name: g.name, values: g.values.map((v) => ({ label: v.label, image: v.image || '' })) })) : [];
+  optState = p ? optionsOf(p).map((g) => ({ name: g.name, values: g.values.map((v) => ({ label: v.label, image: v.image || '', price: v.price || '' })) })) : [];
   renderOpts();
   syncHero();
   fillOffer(p);
@@ -1123,6 +1129,8 @@ function checkOpts() {
     if (!g.name.trim()) return 'Give every option a name, like Colour.';
     if (!cleanLabel(g.values[0] && g.values[0].label)) return 'Name the default choice in ' + g.name.trim() + ' (the main product), like Red.';
     if (labels.length < 2) return 'Add at least one more choice to ' + g.name.trim() + ' besides the default, or remove the option.';
+    const bad = g.values.slice(1).find((v) => String(v.price || '').trim() !== '' && !(Number.isInteger(Number(v.price)) && Number(v.price) > 0));
+    if (bad) return 'Choice prices must be whole rupees, or left empty to use the product price.';
     if (new Set(labels.map((l) => l.toLowerCase())).size !== labels.length) return 'Choices in ' + g.name.trim() + ' must have different names.';
   }
   return '';
@@ -1168,7 +1176,8 @@ prodForm.addEventListener('submit', async (e) => {
       for (const v of g.values) {
         const label = cleanLabel(v.label);
         if (!label) continue;
-        values.push({ label, image: v.newPhoto ? await uploadPhoto(v.newPhoto) : v.image || '' });
+        const vp = Number(v.price);
+        values.push({ label, image: v.newPhoto ? await uploadPhoto(v.newPhoto) : v.image || '', price: values.length && Number.isInteger(vp) && vp > 0 ? vp : null });
       }
       options.push({ name: g.name.trim().slice(0, 30), values });
     }

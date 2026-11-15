@@ -1,4 +1,4 @@
-import { db, auth, googleSignIn, getProfile, validateProfile } from './firebase-shared.js?v=20';
+import { db, auth, googleSignIn, getProfile, validateProfile } from './firebase-shared.js?v=21';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   doc, setDoc, updateDoc, serverTimestamp

@@ -1,7 +1,7 @@
 import {
   db, auth, WHATSAPP, INSTAGRAM, HERO_COLORS, orderCode, googleSignIn, getProfile, setImage, el,
-  fmtPrice, offerInfo, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
-} from './firebase-shared.js?v=20';
+  fmtPrice, offerInfo, choiceOffer, lowestPrice, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
+} from './firebase-shared.js?v=21';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp
@@ -50,15 +50,18 @@ function lazyImage(img, image, eager) {
 }
 
 function priceTag(p, cls) {
-  const o = offerInfo(p);
+  const low = lowestPrice(p);
+  const from = !!(low && Number(p.price) > 0 && low < Number(p.price)) || (!(Number(p.price) > 0) && !!low);
+  const o = offerInfo(from ? { ...p, price: low } : p);
   if (!o.price) return null;
   const t = el('span', 'price-tag' + (o.active ? ' has-offer' : '') + (cls ? ' ' + cls : ''));
+  if (from) t.append(el('span', 'pt-from', 'from'));
   if (o.active) {
     t.append(el('span', 'pt-now', fmtPrice(o.price)), el('s', 'pt-was', fmtPrice(o.original)), el('span', 'pt-off', o.percent + '% off'));
     t.setAttribute('aria-label', 'Now ' + o.price + ' rupees, was ' + o.original + ', ' + o.percent + ' percent off');
   } else {
-    t.textContent = fmtPrice(o.price);
-    t.setAttribute('aria-label', 'Price ' + o.price + ' rupees');
+    t.append(fmtPrice(o.price));
+    t.setAttribute('aria-label', (from ? 'From ' : 'Price ') + o.price + ' rupees');
   }
   return t;
 }
@@ -491,7 +494,7 @@ function describe(key) {
     if (v.image) image = v.image;
     labels.push(groups[i].name + ': ' + v.label);
   }
-  const o = offerInfo(p);
+  const o = choiceOffer(p, k.picks);
   return {
     name: p.name, sub: labels.join(', '), image, price: o.price, original: o.original,
     percent: o.percent, save: o.save, combo: null, options: labels.join(', '), productId: p.id
@@ -751,18 +754,7 @@ function renderDetail() {
   $('pd-img').dataset.image = '';
   pdImage(pickedImage());
 
-  const o = offerInfo(p);
-  const price = $('pd-price');
-  price.replaceChildren();
-  if (o.price) {
-    price.append(el('strong', '', fmtPrice(o.price)));
-    if (o.active) {
-      price.append(el('s', '', fmtPrice(o.original)), el('span', 'pd-off', o.percent + '% off'));
-      const t = el('span', 'pd-timer', timeLeft(o.endsAt - Date.now()));
-      t.dataset.ends = o.endsAt;
-      price.append(t);
-    }
-  } else price.append(el('span', 'pd-ask', 'Price confirmed on WhatsApp'));
+  renderPdPrice();
 
   const opts = $('pd-opts');
   opts.replaceChildren();
@@ -785,6 +777,7 @@ function renderDetail() {
         b.append(t);
       }
       b.append(el('span', '', v.label));
+      if (Number(v.price) > 0) b.append(el('small', 'pd-chip-price', fmtPrice(v.price)));
       b.addEventListener('click', () => {
         pdState.picks[gi] = v.label;
         syncPicks();
@@ -822,6 +815,20 @@ function renderDetail() {
   syncQty();
 }
 
+function renderPdPrice() {
+  const o = choiceOffer(pdState.p, pdState.picks);
+  const price = $('pd-price');
+  price.replaceChildren();
+  if (!o.price) { price.append(el('span', 'pd-ask', 'Price confirmed on WhatsApp')); return; }
+  price.append(el('strong', '', fmtPrice(o.price)));
+  if (o.active) {
+    price.append(el('s', '', fmtPrice(o.original)), el('span', 'pd-off', o.percent + '% off'));
+    const t = el('span', 'pd-timer', timeLeft(o.endsAt - Date.now()));
+    t.dataset.ends = o.endsAt;
+    price.append(t);
+  }
+}
+
 function syncPicks() {
   const { groups, picks } = pdState;
   $('pd-opts').querySelectorAll('.pd-group').forEach((fs, gi) => {
@@ -829,13 +836,15 @@ function syncPicks() {
     fs.querySelectorAll('.pd-chip').forEach((b) => b.setAttribute('aria-pressed', b.dataset.label === picks[gi]));
   });
   if (groups.length) $('pd-msg').replaceChildren();
+  renderPdPrice();
+  syncQty();
   syncDetailCount();
 }
 
 function pdKey() { return variantKey(pdState.p.id, pdState.groups.length ? pdState.picks : null); }
 
 function syncQty() {
-  const o = offerInfo(pdState.p);
+  const o = choiceOffer(pdState.p, pdState.picks);
   $('pd-n').textContent = pdState.qty;
   $('pd-add').textContent = 'Add to basket' + (o.price ? ' · ' + fmtPrice(o.price * pdState.qty) : '');
 }

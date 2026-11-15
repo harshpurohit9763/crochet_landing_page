@@ -105,6 +105,22 @@ export function optionsOf(p) {
     .filter((g) => g.name && g.values.length);
 }
 
+// A choice can carry its own price. If chosen choices in several options have one, the later option wins.
+export function choicePrice(p, picks) {
+  let price = p.price;
+  optionsOf(p).forEach((g, i) => {
+    const v = g.values.find((x) => x.label === (picks || [])[i]);
+    if (v && Number(v.price) > 0) price = Math.round(Number(v.price));
+  });
+  return price;
+}
+export const choiceOffer = (p, picks) => offerInfo({ ...p, price: choicePrice(p, picks) });
+// Lowest price a customer can pay for this product across its choices, for "From" tags.
+export function lowestPrice(p) {
+  const all = [Number(p.price) || 0].concat(...optionsOf(p).map((g) => g.values.map((v) => Number(v.price) || 0))).filter((n) => n > 0);
+  return all.length ? Math.min(...all) : null;
+}
+
 /* Basket keys: a product id, a product id plus chosen option labels joined by ~, or combo:<id>. */
 export const cleanLabel = (s) => String(s || '').replace(/[~|]/g, '-').trim().slice(0, 40);
 export function variantKey(id, picks) {
