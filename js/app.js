@@ -1,7 +1,7 @@
 import {
   db, auth, WHATSAPP, INSTAGRAM, HERO_COLORS, orderCode, googleSignIn, getProfile, setImage, el,
   fmtPrice, offerInfo, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
-} from './firebase-shared.js?v=18';
+} from './firebase-shared.js?v=19';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp

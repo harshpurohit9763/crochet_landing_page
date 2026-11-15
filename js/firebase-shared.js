@@ -23,7 +23,7 @@ export const db = initializeFirestore(app, {
 });
 
 export const WHATSAPP = '919833095599';
-export const INSTAGRAM = 'https://instagram.com/';
+export const INSTAGRAM = 'https://www.instagram.com/looplove45/';
 
 export const STATUS = [
   ['new', 'New'],
