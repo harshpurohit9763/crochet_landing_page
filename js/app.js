@@ -301,7 +301,6 @@ function renderHero() {
   let featured = products.filter((p) => p.featured && shown(p));
   if (!featured.length) featured = products.filter(shown).slice(0, 5);
   const pic = $('hero-pic'), big = $('hero-big'), name = $('hero-name'), tabs = $('hero-tabs'), ctlBox = $('hero-ctl');
-  const shopAll = tabs.querySelector('.shop-all');
   const items = featured.map((p) => {
     const img = el('img');
     img.alt = p.name;
@@ -314,7 +313,7 @@ function renderHero() {
     ti.alt = '';
     lazyImage(ti, p.image);
     tab.append(ti);
-    tabs.insertBefore(tab, shopAll);
+    tabs.append(tab);
     const col = HERO_COLORS.find((c) => c.id === p.heroColor) || HERO_COLORS[0];
     return { p, img, ctl, tab, col };
   });
@@ -449,11 +448,6 @@ function bannerSection(s, next) {
   if (s.subtitle) body.append(el('p', 'door-lede', s.subtitle));
   const picked = (s.picks || []).map((id) => byId[id]).filter(shown).slice(0, 3);
   const pics = picked.length ? picked : next ? visibleProducts(next).slice(0, 3) : [];
-  if (next) {
-    const btn = el('a', 'door-btn', 'See ' + next.title.toLowerCase());
-    btn.href = '#sec-' + next.id;
-    body.append(btn);
-  }
   if (pics.length) {
     const arches = el('div', 'door-arches');
     pics.forEach((p, i) => {

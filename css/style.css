@@ -80,8 +80,6 @@ h2 { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 7vw, 
 .tab { width: 62px; height: 62px; border: 3px solid transparent; border-radius: 14px; overflow: hidden; transition: border-color .2s, transform .2s; }
 .tab img { width: 100%; height: 100%; object-fit: cover; }
 .tab.on, .tab:hover { border-color: var(--t); transform: translateY(-3px); }
-.shop-all { margin-left: auto; padding: 17px 28px; border-radius: 99px; background: var(--t); color: var(--c); font-weight: 800; text-decoration: none; transition: color .45s, transform .2s; }
-.shop-all:hover { transform: scale(1.05); }
 
 /* section bar */
 .secbar { position: sticky; top: 0; z-index: 30; background: rgba(255, 248, 233, .94); backdrop-filter: blur(8px); border-bottom: 1px solid #EBC9D6; }
@@ -129,7 +127,6 @@ h2 { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 7vw, 
   opacity: .7;
 }
 :is(.theme-pastel, .theme-lavender, .theme-mint, .theme-peach, .theme-sky, .theme-butter) .door-arch { border-color: var(--accent); }
-:is(.theme-pastel, .theme-lavender, .theme-mint, .theme-peach, .theme-sky, .theme-butter) .door-btn { background: var(--plum); color: var(--milk); }
 .theme-sunshine { background: var(--marigold); color: var(--plum); }
 .theme-peacock { background: var(--peacock); color: var(--milk); }
 .theme-event { background: var(--beet) radial-gradient(rgba(255, 255, 255, .09) 2px, transparent 2.6px) 0 0 / 30px 30px; color: var(--milk); }
@@ -283,8 +280,6 @@ img[data-loading] { background-color: #F7E3EB; background-image: repeating-linea
 .door-body { position: relative; padding: clamp(10px, 2vw, 30px) 16px 0; text-align: center; }
 .layout-banner h2 { font: 400 clamp(46px, 7.6vw, 118px)/1.02 'Yeseva One', serif; }
 .door-lede { margin: 12px auto 22px; max-width: 46ch; font-size: 20px; }
-.door-btn { position: relative; z-index: 4; display: inline-block; padding: 13px 34px; border-radius: 99px; background: var(--gold); color: var(--night); font-weight: 600; text-decoration: none; transition: transform .2s; }
-.door-btn:hover { transform: scale(1.05); }
 .door-arches { display: flex; justify-content: center; align-items: flex-end; gap: clamp(10px, 2vw, 26px); margin-top: 40px; }
 .door-arch { flex: 0 1 340px; overflow: hidden; border-radius: 999px 999px 0 0; border: 5px solid var(--gold); border-bottom: 0; transition: transform .3s ease-out; }
 .door-arch.mid { flex-basis: 430px; }
@@ -511,7 +506,6 @@ img[data-loading] { background-color: #F7E3EB; background-image: repeating-linea
   .plant-row { flex-direction: column; align-items: flex-start; }
   .plant h3 { font-size: 16px; }
   .tab { width: 52px; height: 52px; }
-  .shop-all { margin-left: 0; }
   .links { gap: 12px; }
   .logo { font-size: 26px; }
   .logo img { width: 42px; height: 42px; }
