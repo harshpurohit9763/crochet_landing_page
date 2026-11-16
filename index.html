@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;500;600&family=Yeseva+One&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 </head>
 <body>
 <main id="page">
@@ -106,10 +106,10 @@
       <p class="pd-desc" id="pd-desc" hidden></p>
       <div id="pd-opts"></div>
       <div class="pd-buy">
-        <div class="pd-qty" role="group" aria-label="Quantity">
-          <button id="pd-minus" type="button" aria-label="One less">−</button>
+        <div class="pd-qty" id="pd-qty" role="group" aria-label="Quantity in basket" hidden>
+          <button id="pd-minus" type="button" aria-label="Remove one from basket">−</button>
           <span id="pd-n" aria-live="polite">1</span>
-          <button id="pd-plus" type="button" aria-label="One more">+</button>
+          <button id="pd-plus" type="button" aria-label="Add one more to basket">+</button>
         </div>
         <button class="btn solid pd-add" id="pd-add" type="button">Add to basket</button>
       </div>
@@ -137,6 +137,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
 <script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>
 <script src="js/yarn.js?v=6"></script>
-<script type="module" src="js/app.js?v=28"></script>
+<script type="module" src="js/app.js?v=29"></script>
 </body>
 </html>

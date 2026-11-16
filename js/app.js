@@ -779,7 +779,7 @@ function openDetail(id, push = true, startPicks = null) {
   if (!shown(p)) return;
   const groups = optionsOf(p);
   const picks = groups.map((g, i) => (startPicks && g.values.some((v) => v.label === startPicks[i]) ? startPicks[i] : g.values[0].label));
-  pdState = { p, groups, picks, qty: 1 };
+  pdState = { p, groups, picks };
   renderDetail();
   if (!pd.open) {
     pd.showModal();
@@ -817,24 +817,9 @@ function renderDetail() {
   $('pd-desc').textContent = p.description || '';
   $('pd-desc').hidden = !p.description;
 
-  const imgs = [p.image];
-  groups.forEach((g) => g.values.forEach((v) => { if (v.image && !imgs.includes(v.image)) imgs.push(v.image); }));
-  const thumbs = $('pd-thumbs');
-  thumbs.replaceChildren();
-  if (imgs.length > 1) {
-    imgs.forEach((image, i) => {
-      const b = el('button', 'pd-thumb');
-      b.type = 'button';
-      b.dataset.image = image;
-      b.setAttribute('aria-label', 'Photo ' + (i + 1) + ' of ' + imgs.length);
-      const t = el('img');
-      t.alt = '';
-      lazyImage(t, image, true);
-      b.append(t);
-      b.addEventListener('click', () => pdImage(image));
-      thumbs.append(b);
-    });
-  }
+  // Every extra photo belongs to a colour or design choice, and the option chips below
+  // already show and switch those photos, so there is no separate photo strip.
+  $('pd-thumbs').replaceChildren();
   $('pd-img').alt = p.name;
   $('pd-img').dataset.image = '';
   pdImage(pickedImage());
@@ -985,31 +970,27 @@ function syncPicks() {
 
 function pdKey() { return variantKey(pdState.p.id, pdState.groups.length ? pdState.picks : null); }
 
+// Before anything is added there is only the Add button. Once this choice is in the basket,
+// the −/+ stepper shows the basket quantity and the button opens the basket.
 function syncQty() {
+  if (!pdState) return;
   const o = choiceOffer(pdState.p, pdState.picks);
-  $('pd-n').textContent = pdState.qty;
-  $('pd-add').textContent = 'Add to basket' + (o.price ? ' · ' + fmtPrice(o.price * pdState.qty) : '');
-}
-
-function syncDetailCount() {
   const n = cart[pdKey()] || 0;
-  $('pd-in').textContent = n ? n + ' already in your basket' + (pdState.groups.length ? ' with these options' : '') : '';
+  $('pd-qty').hidden = n === 0;
+  $('pd-n').textContent = n;
+  $('pd-plus').disabled = n >= 20;
+  const add = $('pd-add');
+  add.classList.toggle('in-basket', n > 0);
+  add.textContent = n ? 'View basket · ' + fmtPrice((o.price || 0) * n) : 'Add to basket' + (o.price ? ' · ' + fmtPrice(o.price) : '');
+  $('pd-in').textContent = n && pdState.groups.length ? 'In your basket with these options' : '';
 }
+function syncDetailCount() { syncQty(); }
 
-$('pd-minus').addEventListener('click', () => { pdState.qty = Math.max(1, pdState.qty - 1); syncQty(); });
-$('pd-plus').addEventListener('click', () => { pdState.qty = Math.min(20, pdState.qty + 1); syncQty(); });
+$('pd-minus').addEventListener('click', () => change(pdKey(), -1, () => { syncQty(); if (!cart[pdKey()]) $('pd-add').focus(); }));
+$('pd-plus').addEventListener('click', () => { if ((cart[pdKey()] || 0) < 20) change(pdKey(), 1, syncQty); });
 $('pd-add').addEventListener('click', () => {
-  const key = pdKey(), qty = pdState.qty;
-  change(key, qty, () => {
-    const m = $('pd-msg');
-    m.replaceChildren(el('span', '', 'Added ' + qty + ' to your basket. '));
-    const b = el('button', 'link', 'View basket');
-    b.type = 'button';
-    b.addEventListener('click', () => { pd.close(); opener = floating; openDrawer(); });
-    m.append(b);
-    pdState.qty = 1;
-    syncQty();
-  });
+  if (cart[pdKey()]) { pd.close(); opener = floating; openDrawer(); return; }
+  change(pdKey(), 1, () => { syncQty(); $('pd-plus').focus(); });
 });
 $('pd-close').addEventListener('click', () => pd.close());
 pd.addEventListener('click', (e) => { if (e.target === pd) pd.close(); });
