@@ -1,14 +1,21 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache,
   getDocs, getDocsFromCache, collection, query, orderBy, setDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-import { ENV, firebaseConfig } from './firebase-config.js?v=1';
+import { ENV, firebaseConfig, appCheckKey } from './firebase-config.js?v=2';
 export { ENV, firebaseConfig };
 
 export const app = initializeApp(firebaseConfig);
+// App Check proves requests come from this site, not a script. Off until a reCAPTCHA key is set.
+if (appCheckKey) {
+  // On localhost the SDK prints a debug token in the console; register it in Firebase console → App Check.
+  if (ENV === 'dev') self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  initializeAppCheck(app, { provider: new ReCaptchaV3Provider(appCheckKey), isTokenAutoRefreshEnabled: true });
+}
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
@@ -141,6 +148,48 @@ export function parseKey(key) {
   if (key.startsWith('combo:')) return { combo: true, id: key.slice(6), picks: [] };
   const [id, ...picks] = key.split('~');
   return { combo: false, id, picks };
+}
+
+/* Order checks for the admin page. Order lines are written by the customer's browser, so the admin
+   compares each line with the catalogue and flags anything that doesn't add up. */
+
+// Products in an order that can be reviewed (combos are not reviewed on their own).
+export function orderProductIds(items) {
+  return [...new Set((items || []).map((i) => parseKey(String(i.id || ''))).filter((k) => !k.combo && k.id).map((k) => k.id))];
+}
+
+// Returns a short problem description for one order line, or '' when its price matches the catalogue.
+export function priceProblem(i, byId, comboById) {
+  const qty = i.qty;
+  if (!Number.isInteger(qty) || qty < 1 || qty > 99) return 'Odd quantity: ' + qty;
+  const k = parseKey(String(i.id || ''));
+  let full, pct;
+  if (k.combo) {
+    const c = comboById[k.id];
+    if (!c) return 'This combo is no longer in the catalogue. Check the price.';
+    const ci = comboInfo(c, byId);
+    full = ci.original;
+    pct = ci.percent;
+  } else {
+    const p = byId[k.id];
+    if (!p) return 'This product is no longer in the catalogue. Check the price.';
+    const groups = optionsOf(p);
+    if (k.picks.length !== groups.length || k.picks.some((pick, n) => !groups[n].values.some((v) => cleanLabel(v.label) === pick))) {
+      return 'These choices are not in the catalogue. Check with the customer.';
+    }
+    const raw = choicePrice(p, k.picks.map((pick, n) => (groups[n].values.find((v) => cleanLabel(v.label) === pick) || {}).label));
+    full = Number(raw) > 0 ? Math.round(Number(raw)) : null;
+    pct = Math.round(Number(p.offerPercent) || 0);
+  }
+  const claimedFull = i.originalPrice || i.price || null;
+  const shown = (n) => (n ? fmtPrice(n) : 'no price');
+  if ((claimedFull || null) !== (full || null)) return 'Catalogue price is ' + shown(full) + ', order says ' + shown(claimedFull) + '.';
+  if (i.offerPercent) {
+    if (i.offerPercent !== pct) return 'Order claims ' + i.offerPercent + '% off; the catalogue offer is ' + (pct ? pct + '%' : 'none') + '.';
+    const expect = Math.round(full * (100 - pct) / 100);
+    if (i.price !== expect) return pct + '% off should be ' + fmtPrice(expect) + ', order says ' + shown(i.price) + '.';
+  } else if (i.originalPrice) return 'Order shows a discount without an offer.';
+  return '';
 }
 
 /* Delivery: the admin quotes normal (and optionally fast) delivery; the customer accepts one.

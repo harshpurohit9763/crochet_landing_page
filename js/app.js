@@ -1,10 +1,11 @@
 import {
   db, auth, WHATSAPP, INSTAGRAM, HERO_COLORS, orderCode, googleSignIn, getProfile, setImage, el,
-  stars, ask, tell, fmtDate, fmtPrice, offerInfo, choiceOffer, lowestPrice, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
-} from './firebase-shared.js?v=23';
+  stars, ask, tell, fmtDate, fmtPrice, offerInfo, choiceOffer, lowestPrice, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog,
+  orderProductIds
+} from './firebase-shared.js?v=24';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
-  collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp, query, where, getDocs, deleteDoc
+  collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp, query, where, getDocs, deleteDoc, writeBatch
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
 const F = (window.FINGO = window.FINGO || {});
@@ -806,7 +807,6 @@ addEventListener('keydown', (e) => {
 });
 $('order-more').addEventListener('click', closeDrawer);
 
-new IntersectionObserver((es) => floating.classList.toggle('tucked', es[0].isIntersecting), { threshold: 0.15 }).observe($('top'));
 
 /* ---------- product page ---------- */
 
@@ -1076,11 +1076,18 @@ send.addEventListener('click', async () => {
         note: itemNote(k).slice(0, 200)
       };
     });
-    const ref = await addDoc(collection(db, 'orders'), {
+    // The order and the account's last-order stamp are saved together; the rules use the stamp
+    // to allow one order a minute per account.
+    const ref = doc(collection(db, 'orders'));
+    const batch = writeBatch(db);
+    batch.set(ref, {
       uid: user.uid,
       customer: { name: profile.name, phone: profile.phone, address: profile.address, email: user.email || '' },
-      items, note: note.trim(), status: 'new', createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+      items, productIds: orderProductIds(items), note: note.trim().slice(0, 1000), status: 'new',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
     });
+    batch.update(doc(db, 'users', user.uid), { lastOrderAt: serverTimestamp(), lastOrderId: ref.id });
+    await batch.commit();
     const code = orderCode(ref.id);
     $('order-code').textContent = code;
     $('order-wa').href = waLink(waText(code));
@@ -1093,7 +1100,9 @@ send.addEventListener('click', async () => {
     $('order-wa').focus();
   } catch (e) {
     console.error(e);
-    msg.textContent = "Couldn't save your order. Check your connection and try again.";
+    msg.textContent = e && e.code === 'permission-denied'
+      ? "Your order wasn't saved. If you placed one in the last minute, wait a moment and try again. Otherwise refresh the page and try again."
+      : "Couldn't save your order. Check your connection and try again.";
   } finally {
     busy = false;
     send.textContent = 'Place order';

@@ -1,4 +1,4 @@
-import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el, deliveryState, DELIVERY_NAMES, ask, tell, parseKey, stars } from './firebase-shared.js?v=23';
+import { db, auth, WHATSAPP, googleSignIn, orderCode, fmtDate, fmtPrice, el, deliveryState, DELIVERY_NAMES, ask, tell, parseKey, stars } from './firebase-shared.js?v=24';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { collection, query, where, onSnapshot, doc, updateDoc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 

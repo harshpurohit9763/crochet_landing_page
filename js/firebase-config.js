@@ -25,3 +25,11 @@ const PROD_HOSTS = ['looplove.matterics.com', 'www.looplove.matterics.com'];
 
 export const ENV = PROD_HOSTS.includes(location.hostname) ? 'prod' : 'dev';
 export const firebaseConfig = CONFIGS[ENV];
+
+// Firebase App Check (bot protection) with reCAPTCHA v3. Leave a key empty to keep App Check off
+// for that project. See DEVELOPMENT.md for how to create the key and when to turn on enforcement.
+const APP_CHECK_KEYS = {
+  prod: '',
+  dev: ''
+};
+export const appCheckKey = APP_CHECK_KEYS[ENV];

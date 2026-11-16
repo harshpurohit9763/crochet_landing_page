@@ -1,7 +1,8 @@
 import {
   db, auth, googleSignIn, getProfile, STATUS, statusLabel, orderCode, fmtDate, THEMES, LAYOUTS, HERO_COLORS, setImage, el,
-  ask, tell, fmtPrice, offerInfo, comboInfo, optionsOf, cleanLabel, deliveryState, DELIVERY_NAMES, fmtWhen, bumpCatalog
-} from './firebase-shared.js?v=23';
+  ask, tell, fmtPrice, offerInfo, comboInfo, optionsOf, cleanLabel, deliveryState, DELIVERY_NAMES, fmtWhen, bumpCatalog,
+  priceProblem, orderProductIds
+} from './firebase-shared.js?v=24';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   doc, updateDoc, addDoc, deleteDoc, collection, query, orderBy, limit, onSnapshot, serverTimestamp, writeBatch, Timestamp
@@ -228,9 +229,11 @@ function orderCard(o) {
 
   const what = el('div');
   const ul = el('ul');
-  let sum = 0, unpriced = 0;
+  let sum = 0, unpriced = 0, problems = 0;
+  const comboById = Object.fromEntries(combos.map((c) => [c.id, c]));
   (o.items || []).forEach((i) => {
     const li = el('li', '', i.qty + ' x ' + i.name);
+    const problem = catalogReady ? priceProblem(i, byId, comboById) : '';
     if (i.price) {
       sum += i.price * i.qty;
       li.append(' ', el('span', 'a-item-price', '@ ' + fmtPrice(i.price) + (i.offerPercent ? ' (' + i.offerPercent + '% off ' + fmtPrice(i.originalPrice) + ')' : '')));
@@ -238,6 +241,7 @@ function orderCard(o) {
     if (i.options) li.append(el('span', 'a-item-opt', i.options));
     if (i.combo && i.combo.length) li.append(el('span', 'a-item-opt', 'Combo: ' + i.combo.join(' + ')));
     li.append(el('span', 'a-item-id', 'ID: ' + i.id));
+    if (problem) { problems++; li.append(el('span', 'a-item-warn', problem)); }
     if (i.note) li.append(el('span', 'a-item-note', i.note));
     ul.append(li);
   });
@@ -247,7 +251,16 @@ function orderCard(o) {
     ul.append(el('li', 'a-total-line', 'Delivery ' + (hasDelivery ? fmtPrice(o.deliveryCharge) + (o.deliveryChoice === 'fast' ? ' (fast)' : '') : 'not chosen yet')));
     ul.append(el('li', 'a-total', 'Total ' + fmtPrice(sum + (hasDelivery ? o.deliveryCharge : 0)) + (hasDelivery ? '' : ' + delivery')));
   }
-  what.append(el('h3', '', 'Items'), ul);
+  const ids = orderProductIds(o.items);
+  const listed = Array.isArray(o.productIds) ? o.productIds : null;
+  const listMismatch = listed && (listed.length !== ids.length || listed.some((x) => !ids.includes(x)));
+  what.append(el('h3', '', 'Items'));
+  if (problems || listMismatch) {
+    li.classList.add('has-warn');
+    what.append(el('p', 'a-warn', (problems ? "Prices don't match the catalogue. Check them before you confirm this order. " : '') +
+      (listMismatch ? "This order's product list doesn't match its items, so it may have been edited outside the shop." : '')));
+  }
+  what.append(ul);
   if (o.note) what.append(el('p', 'a-note', 'Order note: ' + o.note));
   what.append(deliveryBox(o));
 
@@ -284,10 +297,11 @@ let sections = [];
 let products = [];
 let combos = [];
 let byId = {};
+let catalogReady = false;
 
 function listenCatalog() {
   const got = { s: false, p: false, c: false };
-  const ready = () => { if (got.s && got.p && got.c) { renderCatalog(); renderProductList(); } };
+  const ready = () => { if (got.s && got.p && got.c) { catalogReady = true; renderCatalog(); renderProductList(); renderOrders(); } };
   unsubs.push(onSnapshot(query(collection(db, 'sections'), orderBy('order')), (s) => {
     sections = s.docs.map((d) => ({ id: d.id, ...d.data() }));
     got.s = true; ready();

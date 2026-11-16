@@ -247,3 +247,5 @@
 [data-theme="dark"] .o-review-form textarea { background: var(--d-card); border-color: var(--d-line); }
 [data-theme="dark"] .o-review-form textarea:focus { border-color: var(--d-pink); }
 @media (max-width: 800px) { .a-top .theme-btn { margin-left: auto; } .a-top .link:not([hidden]) + .theme-btn { margin-left: 0; } .a-top .link:not([hidden]) { margin-left: auto; } }
+[data-theme="dark"] .a-order.has-warn { box-shadow: 0 0 0 3px var(--d-red), 0 6px 18px rgba(0, 0, 0, .35); }
+[data-theme="dark"] .a-warn, [data-theme="dark"] .a-item-warn { background: var(--d-bad-bg); color: #FFC4CE; }

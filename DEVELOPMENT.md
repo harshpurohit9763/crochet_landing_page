@@ -74,3 +74,35 @@ A plain `firebase deploy` goes to dev (the default alias). The website itself de
 ## Storage
 
 Both projects are on the free Spark plan, which has no Cloud Storage bucket. Photos live in the `media` collection as data URLs in each project's own database, so dev and prod photos are separate too.
+
+## Security checks (Nov 2026)
+
+What the rules in `firestore.rules` enforce:
+
+| Area | Rule |
+|---|---|
+| New orders | Customer details must equal the customer's saved profile and sign-in email. The order time is set by the server. One order a minute per account (`lastOrderAt` / `lastOrderId` on the user doc, written in the same batch as the order). |
+| Order prices | Rules can't loop over the items list, so prices are checked on the admin page instead. Every order line is compared with the catalogue; a mismatch shows a red warning on the order. |
+| Reviews | Only for a product listed in that delivered order (`productIds`), and only under the customer's first name. |
+| Profiles | Phone must be 10–15 digits with an optional `+`. Email must be the sign-in email. Role is always `user`. |
+
+Rules tests run against the local emulator. They are not committed; ask Claude to re-run them after changing the rules.
+
+`tools/backfill-security.js` adds `productIds` to old orders and tidies old phone numbers. It is a dry run unless you pass `--apply`.
+
+### Releasing a rules change together with site code
+
+The new site code and the new rules depend on each other: old rules reject orders from the new site, and new rules reject orders from the old site. Release them back to back:
+
+1. `FIREBASE_ENV=prod node tools/backfill-security.js harshpurohit117@gmail.com` (dry run; `--apply` only if it lists anything)
+2. `firebase deploy --only firestore:rules --project prod`
+3. `git push origin main` (Vercel deploys in about a minute)
+
+## Bot protection (App Check)
+
+The code is ready but off: `APP_CHECK_KEYS` in `js/firebase-config.js` is empty. To turn it on for a project:
+
+1. Firebase console → that project → App Check → Apps → your web app → reCAPTCHA v3. It links to the reCAPTCHA admin page. Create a v3 key for the site's domains (`looplove.matterics.com` for prod; `localhost` for dev).
+2. Paste the **site key** (public, safe to commit) into `APP_CHECK_KEYS` and bump `firebase-config.js?v=` in `firebase-shared.js`.
+3. On dev, open localhost, copy the debug token the console prints, and add it under App Check → Apps → Manage debug tokens.
+4. Watch App Check → APIs → Cloud Firestore for a few days. When almost all requests show as verified, press **Enforce**. Enforcing too early blocks real customers.
