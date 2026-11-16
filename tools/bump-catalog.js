@@ -4,12 +4,13 @@
 const path = require('path');
 const lib = path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'firebase-tools', 'lib');
 const auth = require(path.join(lib, 'auth.js'));
+const { PROJECT } = require('./env');
 
 (async () => {
   const acct = auth.findAccountByEmail(process.argv[2]);
   if (!acct) throw new Error('No Firebase CLI login for ' + process.argv[2]);
   const tok = (await auth.getAccessToken(acct.tokens.refresh_token, ['https://www.googleapis.com/auth/cloud-platform'])).access_token;
-  const url = 'https://firestore.googleapis.com/v1/projects/crochetlandingpage/databases/(default)/documents/meta/catalog?updateMask.fieldPaths=version';
+  const url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents/meta/catalog?updateMask.fieldPaths=version';
   const res = await fetch(url, {
     method: 'PATCH',
     headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },

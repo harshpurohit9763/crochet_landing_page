@@ -4,7 +4,7 @@ const path = require('path');
 const lib = path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'firebase-tools', 'lib');
 const auth = require(path.join(lib, 'auth.js'));
 
-const PROJECT = 'crochetlandingpage';
+const { PROJECT } = require('./env');
 
 (async () => {
   const [cliEmail, userEmail, role] = process.argv.slice(2);

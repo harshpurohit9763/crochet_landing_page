@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "crochetlandingpage"
+    "default": "looplove-dev",
+    "dev": "looplove-dev",
+    "prod": "crochetlandingpage"
   }
 }

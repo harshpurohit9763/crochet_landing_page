@@ -7,3 +7,6 @@ firebase.json
 .firebaserc
 firestore.rules
 .claude/
+.env
+.env.*
+DEVELOPMENT.md

@@ -5,22 +5,28 @@ import {
   getDocs, getDocsFromCache, collection, query, orderBy, setDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-// Public web config. Safe to ship: access is controlled by firestore.rules.
-export const firebaseConfig = {
-  apiKey: 'AIzaSyByGq8GGG4vOR9kloKWa7Uoz61DHjCZZQ8',
-  authDomain: 'crochetlandingpage.firebaseapp.com',
-  projectId: 'crochetlandingpage',
-  storageBucket: 'crochetlandingpage.firebasestorage.app',
-  messagingSenderId: '25053424852',
-  appId: '1:25053424852:web:fbc1d740506bd6226e9f41',
-  measurementId: 'G-7GWBHX5TRQ'
-};
+import { ENV, firebaseConfig } from './firebase-config.js?v=1';
+export { ENV, firebaseConfig };
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
+
+// Makes it obvious when a page is talking to the dev database.
+if (ENV === 'dev') {
+  const showBadge = () => {
+    const b = document.createElement('div');
+    b.className = 'env-badge';
+    b.textContent = 'DEV data';
+    b.title = 'Connected to the looplove-dev Firebase project, not the live shop';
+    b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;padding:4px 10px;border-radius:999px;' +
+      'background:#1F6F5C;color:#fff;font:600 12px/1.4 system-ui,sans-serif;letter-spacing:.04em;pointer-events:none;opacity:.9';
+    document.body.append(b);
+  };
+  if (document.body) showBadge(); else addEventListener('DOMContentLoaded', showBadge, { once: true });
+}
 
 export const WHATSAPP = '919833095599';
 export const INSTAGRAM = 'https://www.instagram.com/looplove45/';
@@ -37,7 +43,12 @@ export const statusLabel = (s) => (STATUS.find((x) => x[0] === s) || [s, s])[1];
 
 export const THEMES = [
   { id: 'plain', label: 'Plain', bg: '#FFF8E9', ink: '#4A1230' },
-  { id: 'pastel', label: 'Pastel', bg: '#FBD9E4', ink: '#4A1230' },
+  { id: 'pastel', label: 'Pastel blush', bg: '#FADCE7', ink: '#4A1230' },
+  { id: 'lavender', label: 'Pastel lavender', bg: '#E9E0FA', ink: '#4A1230' },
+  { id: 'mint', label: 'Pastel mint', bg: '#DDF2E7', ink: '#4A1230' },
+  { id: 'peach', label: 'Pastel peach', bg: '#FFE3D3', ink: '#4A1230' },
+  { id: 'sky', label: 'Pastel sky', bg: '#DCECF9', ink: '#4A1230' },
+  { id: 'butter', label: 'Pastel butter', bg: '#FFF0C4', ink: '#4A1230' },
   { id: 'festive', label: 'Festive', bg: '#2A0E2E', ink: '#FFF3DC' },
   { id: 'event', label: 'Event', bg: '#A80F4E', ink: '#FFF3DC' },
   { id: 'peacock', label: 'Peacock', bg: '#0B5D53', ink: '#FFF8E9' },
@@ -231,7 +242,7 @@ export function setImage(img, image) {
 /* Catalogue cache: admins bump meta/catalog.version on every change. Visitors read that one
    record; when it matches what this device already has, sections and products come from the
    device cache with no further reads. */
-const VERSION_KEY = 'fingo-catalog-version';
+const VERSION_KEY = 'fingo-catalog-version-' + ENV;
 
 export async function loadCatalog() {
   const qs = [query(collection(db, 'sections'), orderBy('order')), query(collection(db, 'products'), orderBy('order')), collection(db, 'combos')];

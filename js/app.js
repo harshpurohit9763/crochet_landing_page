@@ -1,7 +1,7 @@
 import {
   db, auth, WHATSAPP, INSTAGRAM, HERO_COLORS, orderCode, googleSignIn, getProfile, setImage, el,
   stars, ask, tell, fmtDate, fmtPrice, offerInfo, choiceOffer, lowestPrice, comboInfo, optionsOf, variantKey, parseKey, timeLeft, markLoading, loadCatalog
-} from './firebase-shared.js?v=22';
+} from './firebase-shared.js?v=23';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp, query, where, getDocs, deleteDoc
@@ -106,7 +106,105 @@ function detailName(tag, p) {
 }
 function detailClick(box, p) {
   box.classList.add('to-detail');
-  box.addEventListener('click', (e) => { if (!e.target.closest('.ctl, .price-tag button')) openDetail(p.id); });
+  box.addEventListener('click', (e) => {
+    if (e.target.closest('.ctl, .price-tag button, .sl-nav, .sl-dots')) return;
+    openDetail(p.id, true, box.slidePicks ? box.slidePicks() : null);
+  });
+}
+
+/* ---------- tile photo carousel ---------- */
+
+// The main photo plus every colour or design choice that has its own photo, without repeats.
+function tileSlides(p) {
+  const groups = optionsOf(p);
+  const base = groups.map((g) => g.values[0].label);
+  const seen = new Set();
+  const out = [];
+  const add = (image, label, picks) => {
+    if (!image || seen.has(image)) return;
+    seen.add(image);
+    out.push({ image, label, picks });
+  };
+  add(p.image, groups.length ? groups[0].values[0].label : '', base);
+  groups.forEach((g, gi) => g.values.forEach((v) => {
+    const picks = base.slice();
+    picks[gi] = v.label;
+    add(v.image, v.label, picks);
+  }));
+  return out;
+}
+
+// Puts the product photo into a tile. With 2+ photos it becomes a swipeable carousel with arrows and dots.
+function tilePhotos(host, p, { eager = false } = {}) {
+  const slides = tileSlides(p);
+  if (slides.length < 2) {
+    const img = el('img');
+    img.alt = p.name;
+    img.loading = 'lazy';
+    img.draggable = false;
+    lazyImage(img, p.image, eager);
+    host.append(img);
+    return;
+  }
+  host.classList.add('has-slides');
+  const track = el('div', 'sl-track');
+  const imgs = slides.map((sl) => {
+    const img = el('img');
+    img.alt = p.name + (sl.label ? ', ' + sl.label : '');
+    img.draggable = false;
+    track.append(img);
+    return img;
+  });
+  lazyImage(imgs[0], slides[0].image, eager);
+  // The other photos load once the tile is near the screen.
+  const io = new IntersectionObserver((es) => {
+    if (!es[0].isIntersecting) return;
+    io.disconnect();
+    slides.slice(1).forEach((sl, i) => setImage(imgs[i + 1], sl.image));
+  }, { rootMargin: '300px' });
+  io.observe(host);
+
+  const label = el('span', 'sl-label');
+  const prev = el('button', 'sl-nav sl-prev', '‹');
+  const next = el('button', 'sl-nav sl-next', '›');
+  prev.type = next.type = 'button';
+  prev.setAttribute('aria-label', 'Previous photo of ' + p.name);
+  next.setAttribute('aria-label', 'Next photo of ' + p.name);
+  const dots = el('div', 'sl-dots');
+  const dotBtns = slides.map((sl, i) => {
+    const d = el('button', 'sl-dot');
+    d.type = 'button';
+    d.setAttribute('aria-label', 'Photo ' + (i + 1) + ' of ' + slides.length + (sl.label ? ': ' + sl.label : ''));
+    d.addEventListener('click', () => go(i));
+    dots.append(d);
+    return d;
+  });
+
+  let cur = -1;
+  function mark(i) {
+    if (i === cur) return;
+    cur = i;
+    dotBtns.forEach((d, j) => d.setAttribute('aria-current', j === i ? 'true' : 'false'));
+    label.textContent = slides[i].label;
+    label.hidden = !slides[i].label;
+    prev.disabled = i === 0;
+    next.disabled = i === slides.length - 1;
+  }
+  function go(i) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    track.scrollTo({ left: i * track.clientWidth, behavior: reduced ? 'auto' : 'smooth' });
+    mark(i);
+  }
+  prev.addEventListener('click', () => go(cur - 1));
+  next.addEventListener('click', () => go(cur + 1));
+  let raf = 0;
+  track.addEventListener('scroll', () => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => mark(Math.round(track.scrollLeft / Math.max(1, track.clientWidth))));
+  }, { passive: true });
+  host.slidePicks = () => slides[Math.max(cur, 0)].picks;
+  mark(0);
+  host.append(track, prev, next, dots, label);
 }
 
 /* ---------- add / quantity control ---------- */
@@ -231,11 +329,7 @@ function gridSection(s, list) {
   list.forEach((p) => {
     const a = el('article', 'plant');
     const pic = el('span', 'plant-pic');
-    const img = el('img');
-    img.alt = p.name;
-    img.loading = 'lazy';
-    lazyImage(img, p.image);
-    pic.append(img);
+    tilePhotos(pic, p);
     detailClick(pic, p);
     const tag = priceTag(p);
     if (tag) pic.append(tag);
@@ -258,12 +352,7 @@ function shelfSection(s, list) {
   list.forEach((p) => {
     const a = el('article', 'arch');
     const fig = el('figure');
-    const img = el('img');
-    img.alt = p.name;
-    img.loading = 'lazy';
-    img.draggable = false;
-    lazyImage(img, p.image, true);
-    fig.append(img);
+    tilePhotos(fig, p, { eager: true });
     detailClick(fig, p);
     const tag = priceTag(p, 'on-arch');
     if (tag) fig.append(tag);
@@ -300,15 +389,13 @@ function gallerySection(s, list) {
   list.forEach((p, i) => {
     const f = el('figure', 'pin');
     f.style.setProperty('--r', TILTS[i % TILTS.length]);
-    const img = el('img');
-    img.alt = p.name;
-    img.loading = 'lazy';
-    lazyImage(img, p.image);
-    detailClick(img, p);
+    const ph = el('div', 'pin-pic');
+    tilePhotos(ph, p);
+    detailClick(ph, p);
     const cap = el('figcaption');
     cap.append(detailName('span', p));
     productControl(cap, p);
-    f.append(img, cap);
+    f.append(ph, cap);
     const tag = priceTag(p);
     if (tag) f.append(tag);
     wall.append(f);
@@ -358,11 +445,8 @@ function productCoupon(p) {
   const o = offerInfo(p);
   const card = el('article', 'coupon');
   const pic = el('div', 'coupon-pic');
-  const img = el('img');
-  img.alt = p.name;
-  img.loading = 'lazy';
-  lazyImage(img, p.image);
-  pic.append(img, el('span', 'coupon-stamp', o.percent + '%\nOFF'));
+  tilePhotos(pic, p);
+  pic.append(el('span', 'coupon-stamp', o.percent + '%\nOFF'));
   detailClick(pic, p);
   const body = el('div', 'coupon-body');
   const price = el('p', 'coupon-price');
@@ -690,11 +774,12 @@ let pdState = null;
 let pdPushed = false;
 let pdFromPop = false;
 
-function openDetail(id, push = true) {
+function openDetail(id, push = true, startPicks = null) {
   const p = byId[id];
   if (!shown(p)) return;
   const groups = optionsOf(p);
-  pdState = { p, groups, picks: groups.map((g) => g.values[0].label), qty: 1 };
+  const picks = groups.map((g, i) => (startPicks && g.values.some((v) => v.label === startPicks[i]) ? startPicks[i] : g.values[0].label));
+  pdState = { p, groups, picks, qty: 1 };
   renderDetail();
   if (!pd.open) {
     pd.showModal();

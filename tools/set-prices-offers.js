@@ -6,7 +6,8 @@ const path = require('path');
 const lib = path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'firebase-tools', 'lib');
 const auth = require(path.join(lib, 'auth.js'));
 
-const ROOT = 'projects/crochetlandingpage/databases/(default)/documents';
+const { PROJECT } = require('./env');
+const ROOT = 'projects/' + PROJECT + '/databases/(default)/documents';
 const BASE = 'https://firestore.googleapis.com/v1/' + ROOT;
 
 const PRICES = {
