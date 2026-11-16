@@ -63,6 +63,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 7vw, 
 .nav-how[aria-expanded="true"]::after { rotate: 225deg; translate: 0 2px; }
 .nav-how:hover { text-decoration: underline; text-underline-offset: 4px; }
 .how-panel { position: absolute; top: calc(100% + 14px); right: -12px; z-index: 60; width: min(400px, calc(100vw - 32px)); padding: 22px 22px 18px; border-radius: 20px; background: var(--milk); color: var(--plum); font-family: var(--body); box-shadow: 0 24px 50px rgba(42, 14, 46, .35); transform-origin: top right; animation: how-in .22s cubic-bezier(.2, .9, .3, 1.2); }
+.how-panel { white-space: normal; }
 .how-panel[hidden] { display: none; }
 .how-panel::before { content: ''; position: absolute; top: -7px; right: 40px; width: 14px; height: 14px; background: var(--milk); rotate: 45deg; border-radius: 3px 0 0 0; }
 @keyframes how-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } }
