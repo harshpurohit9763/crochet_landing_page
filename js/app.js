@@ -49,10 +49,10 @@ function lazyImage(img, image, eager) {
   io.observe(img);
 }
 
-function priceTag(p, cls) {
+function priceTag(p, cls, picks) {
   const low = lowestPrice(p);
-  const from = !!(low && Number(p.price) > 0 && low < Number(p.price)) || (!(Number(p.price) > 0) && !!low);
-  const o = offerInfo(from ? { ...p, price: low } : p);
+  const from = !picks && (!!(low && Number(p.price) > 0 && low < Number(p.price)) || (!(Number(p.price) > 0) && !!low));
+  const o = picks ? choiceOffer(p, picks) : offerInfo(from ? { ...p, price: low } : p);
   if (!o.price) return null;
   const t = el('span', 'price-tag' + (o.active ? ' has-offer' : '') + (cls ? ' ' + cls : ''));
   if (from) t.append(el('span', 'pt-from', 'from'));
@@ -164,7 +164,6 @@ function tilePhotos(host, p, { eager = false } = {}) {
   }, { rootMargin: '300px' });
   io.observe(host);
 
-  const label = el('span', 'sl-label');
   const prev = el('button', 'sl-nav sl-prev', '‹');
   const next = el('button', 'sl-nav sl-next', '›');
   prev.type = next.type = 'button';
@@ -185,10 +184,9 @@ function tilePhotos(host, p, { eager = false } = {}) {
     if (i === cur) return;
     cur = i;
     dotBtns.forEach((d, j) => d.setAttribute('aria-current', j === i ? 'true' : 'false'));
-    label.textContent = slides[i].label;
-    label.hidden = !slides[i].label;
     prev.disabled = i === 0;
     next.disabled = i === slides.length - 1;
+    host.dispatchEvent(new CustomEvent('slide'));
   }
   function go(i) {
     i = Math.max(0, Math.min(slides.length - 1, i));
@@ -203,13 +201,15 @@ function tilePhotos(host, p, { eager = false } = {}) {
     raf = requestAnimationFrame(() => mark(Math.round(track.scrollLeft / Math.max(1, track.clientWidth))));
   }, { passive: true });
   host.slidePicks = () => slides[Math.max(cur, 0)].picks;
+  host.slideAll = slides.map((sl) => sl.picks);
   mark(0);
-  host.append(track, prev, next, dots, label);
+  host.append(track, prev, next, dots);
 }
 
 /* ---------- add / quantity control ---------- */
 
-function mountControl(row, key, label) {
+function mountControl(row, key, label, allKeys) {
+  const keyOf = typeof key === 'function' ? key : () => key;
   const box = el('div', 'ctl');
   const add = el('button', 'add', 'Add');
   const stepper = el('div', 'stepper');
@@ -223,12 +223,19 @@ function mountControl(row, key, label) {
   plus.setAttribute('aria-label', 'Add one more ' + label);
   stepper.append(minus, n, plus);
   box.append(add, stepper);
-  add.addEventListener('click', () => change(key, 1, () => plus.focus()));
-  plus.addEventListener('click', () => change(key, 1));
-  minus.addEventListener('click', () => change(key, -1, () => { if (!cart[key]) add.focus(); }));
+  add.addEventListener('click', () => change(keyOf(), 1, () => plus.focus()));
+  plus.addEventListener('click', () => change(keyOf(), 1));
+  minus.addEventListener('click', () => change(keyOf(), -1, () => { if (!cart[keyOf()]) add.focus(); }));
   row.append(box);
-  (controls[key] = controls[key] || []).push({ add, stepper, n });
-  syncControl(key);
+  const entry = { add, stepper, n, minus, plus, keyOf };
+  (allKeys || [key]).forEach((k) => (controls[k] = controls[k] || []).push(entry));
+  syncEntry(entry);
+  box.sync = () => syncEntry(entry);
+  box.relabel = (text) => {
+    add.setAttribute('aria-label', 'Add ' + text + ' to basket');
+    minus.setAttribute('aria-label', 'Remove one ' + text);
+    plus.setAttribute('aria-label', 'Add one more ' + text);
+  };
   return box;
 }
 
@@ -244,13 +251,47 @@ function productControl(row, p) {
   return box;
 }
 
+function syncEntry(c) {
+  const n = cart[c.keyOf()] || 0;
+  c.add.hidden = n > 0;
+  c.stepper.hidden = n === 0;
+  c.n.textContent = n;
+}
 function syncControl(key) {
-  const n = cart[key] || 0;
-  (controls[key] || []).forEach((c) => {
-    c.add.hidden = n > 0;
-    c.stepper.hidden = n === 0;
-    c.n.textContent = n;
-  });
+  (controls[key] || []).forEach(syncEntry);
+}
+
+// Tile buy row. For a product whose design photos swipe in the tile, Add buys the design on
+// screen, the price tag shows that design's price and its name sits under the product name.
+function tileBuy(p, host, row, nameEl, tagSpot) {
+  if (!host.slideAll || !optionsOf(p).length) {
+    if (tagSpot) { const t = priceTag(p, tagSpot.cls); if (t) tagSpot.parent.append(t); }
+    productControl(row, p);
+    return;
+  }
+  const picksNow = () => host.slidePicks();
+  const keyNow = () => variantKey(p.id, picksNow());
+  const keys = [...new Set(host.slideAll.map((pk) => variantKey(p.id, pk)))];
+  const variant = el('span', 'pvar');
+  nameEl.append(variant);
+  const box = mountControl(row, keyNow, p.name, keys);
+  let tag = null;
+  const update = () => {
+    const picks = picksNow();
+    const label = picks.filter(Boolean).join(', ');
+    variant.textContent = label;
+    box.relabel(p.name + (label ? ', ' + label : ''));
+    box.sync();
+    if (tagSpot) {
+      const t = priceTag(p, tagSpot.cls, picks);
+      if (tag) tag.remove();
+      tag = t;
+      if (t) tagSpot.parent.append(t);
+    }
+    if (host.onVariant) host.onVariant(picks);
+  };
+  host.addEventListener('slide', update);
+  update();
 }
 
 /* ---------- hero ---------- */
@@ -331,11 +372,10 @@ function gridSection(s, list) {
     const pic = el('span', 'plant-pic');
     tilePhotos(pic, p);
     detailClick(pic, p);
-    const tag = priceTag(p);
-    if (tag) pic.append(tag);
     const row = el('div', 'plant-row');
-    row.append(detailName('h3', p));
-    productControl(row, p);
+    const h = detailName('h3', p);
+    row.append(h);
+    tileBuy(p, pic, row, h, { parent: pic });
     a.append(pic, row);
     grid.append(a);
   });
@@ -354,11 +394,10 @@ function shelfSection(s, list) {
     const fig = el('figure');
     tilePhotos(fig, p, { eager: true });
     detailClick(fig, p);
-    const tag = priceTag(p, 'on-arch');
-    if (tag) fig.append(tag);
     const row = el('div', 'arch-row');
-    row.append(detailName('h3', p));
-    productControl(row, p);
+    const h = detailName('h3', p);
+    row.append(h);
+    tileBuy(p, fig, row, h, { parent: fig, cls: 'on-arch' });
     a.append(fig, row);
     shelf.append(a);
   });
@@ -393,11 +432,10 @@ function gallerySection(s, list) {
     tilePhotos(ph, p);
     detailClick(ph, p);
     const cap = el('figcaption');
-    cap.append(detailName('span', p));
-    productControl(cap, p);
+    const nm = detailName('span', p);
+    cap.append(nm);
     f.append(ph, cap);
-    const tag = priceTag(p);
-    if (tag) f.append(tag);
+    tileBuy(p, ph, cap, nm, { parent: f });
     wall.append(f);
   });
   wrap.append(head(s), wall);
@@ -450,10 +488,19 @@ function productCoupon(p) {
   detailClick(pic, p);
   const body = el('div', 'coupon-body');
   const price = el('p', 'coupon-price');
-  price.append(el('strong', '', fmtPrice(o.price)), el('s', '', fmtPrice(o.original)));
+  const now = el('strong', '', fmtPrice(o.price)), was = el('s', '', fmtPrice(o.original));
+  price.append(now, was);
+  const save = el('p', 'coupon-save', 'You save ' + fmtPrice(o.save));
+  pic.onVariant = (picks) => {
+    const v = choiceOffer(p, picks);
+    now.textContent = fmtPrice(v.price);
+    was.textContent = fmtPrice(v.original);
+    save.textContent = 'You save ' + fmtPrice(v.save);
+  };
   const row = el('div', 'coupon-row');
-  productControl(row, p);
-  body.append(detailName('h3', p), price, el('p', 'coupon-save', 'You save ' + fmtPrice(o.save)), couponTimer(o.endsAt), row);
+  const h = detailName('h3', p);
+  tileBuy(p, pic, row, h, null);
+  body.append(h, price, save, couponTimer(o.endsAt), row);
   card.append(pic, body);
   return card;
 }

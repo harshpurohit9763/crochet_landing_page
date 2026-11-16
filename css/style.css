@@ -252,6 +252,8 @@ img[data-loading] { background-color: #F7E3EB; background-image: repeating-linea
 .sl-dot { width: 15px; height: 15px; border: 4px solid transparent; border-radius: 99px; background: rgba(255, 255, 255, .6); background-clip: content-box; transition: width .25s, background-color .25s; }
 .sl-dot[aria-current="true"] { width: 26px; background-color: #fff; }
 .sl-dot:focus-visible { outline-color: #fff; outline-offset: 0; }
+.pvar { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: #8C4A68; }
+.pvar:empty { display: none; }
 .sl-label { position: absolute; top: 14px; right: 12px; z-index: 2; max-width: 45%; padding: 4px 10px; border-radius: 99px; background: rgba(255, 248, 233, .92); color: var(--plum); font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .sl-label[hidden], .arch .sl-label, .coupon-pic .sl-label { display: none; }
 .arch .sl-dots { left: auto; right: 16px; bottom: 22px; translate: none; }
